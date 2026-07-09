@@ -1,0 +1,104 @@
+import React, { useState } from 'react'
+
+interface Product {
+  id: number
+  name: string
+  price: number
+  stock: number
+  type: string
+}
+
+interface ProductTableProps {
+  products: Product[]
+  onEditClick: (product: Product) => void
+  onDeleteClick: (productId: number) => void
+}
+
+export default function ProductTable({
+  products,
+  onEditClick,
+  onDeleteClick
+}: ProductTableProps): React.JSX.Element {
+  const [query, setQuery] = useState('')
+
+  const filtered = products.filter((p) => p.name.toLowerCase().includes(query.toLowerCase()))
+
+  return (
+    <div className="product-table-wrapper">
+      <div className="table-header-row">
+        <h4 style={{ fontFamily: 'var(--font-title)', fontWeight: 700 }}>
+          Daftar Barang ({products.length})
+        </h4>
+        <input
+          type="text"
+          placeholder="Cari barang..."
+          className="search-input table-search"
+          value={query}
+          onChange={(e): void => setQuery(e.target.value)}
+        />
+      </div>
+
+      <div className="table-scroll-container">
+        {filtered.length === 0 ? (
+          <div
+            style={{ textAlign: 'center', padding: '40px', color: '#6b7280', fontSize: '14px' }}
+          >
+            Belum ada data barang.
+          </div>
+        ) : (
+          <table className="pos-table">
+            <thead>
+              <tr>
+                <th style={{ textAlign: 'center', width: '60px' }}>ID</th>
+                <th>Nama Barang</th>
+                <th>Tipe</th>
+                <th style={{ textAlign: 'left' }}>Harga</th>
+                <th style={{ textAlign: 'center' }}>Stok</th>
+                <th style={{ textAlign: 'center' }}>Aksi</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.map((p) => (
+                <tr key={p.id}>
+                  <td style={{ textAlign: 'center', color: '#9ca3af', fontFamily: 'monospace' }}>
+                    {p.id}
+                  </td>
+                  <td>{p.name}</td>
+                  <td>
+                    <span style={{ opacity: 0.8, fontSize: '12px' }}>{p.type || '-'}</span>
+                  </td>
+                  <td style={{ textAlign: 'left', fontWeight: 600 }}>
+                    Rp{p.price.toLocaleString('id-ID')}
+                  </td>
+                  <td style={{ textAlign: 'center' }}>
+                    <span className={`table-stock-badge ${p.stock <= 0 ? 'out' : ''}`}>
+                      {p.stock}
+                    </span>
+                  </td>
+                  <td style={{ textAlign: 'center' }}>
+                    <div className="table-actions">
+                      <button
+                        className="action-btn-edit"
+                        onClick={(): void => onEditClick(p)}
+                        title="Edit Produk"
+                      >
+                        Update
+                      </button>
+                      <button
+                        className="action-btn-delete"
+                        onClick={(): void => onDeleteClick(p.id)}
+                        title="Hapus Produk"
+                      >
+                        Hapus
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
+    </div>
+  )
+}

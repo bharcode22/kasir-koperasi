@@ -35,7 +35,8 @@ function createWindow(): void {
   }
 }
 
-import { initializeDatabase, getPrisma } from './database'
+import { initializeDatabase } from './database'
+import { registerIpcHandlers } from './ipc'
 
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
@@ -43,6 +44,9 @@ import { initializeDatabase, getPrisma } from './database'
 app.whenReady().then(() => {
   // Inisialisasi database SQLite
   initializeDatabase()
+
+  // Daftarkan handler IPC modular
+  registerIpcHandlers()
 
   // Set app user model id for windows
   electronApp.setAppUserModelId('com.electron')
@@ -52,58 +56,6 @@ app.whenReady().then(() => {
   // see https://github.com/alex8088/electron-toolkit/tree/master/packages/utils
   app.on('browser-window-created', (_, window) => {
     optimizer.watchWindowShortcuts(window)
-  })
-
-  // IPC handlers for POS
-  ipcMain.handle('get-products', async () => {
-    const prisma = getPrisma()
-    return await prisma.product.findMany({
-      orderBy: { createdAt: 'desc' }
-    })
-  })
-
-  ipcMain.handle('create-product', async (_, data: { name: string; price: number; sku: string; stock: number }) => {
-    const prisma = getPrisma()
-    return await prisma.product.create({
-      data: {
-        name: data.name,
-        price: data.price,
-        sku: data.sku,
-        stock: data.stock
-      }
-    })
-  })
-
-  ipcMain.handle('create-transaction', async (_, data: { total: number; items: { productId: number; quantity: number; price: number }[] }) => {
-    const prisma = getPrisma()
-    return await prisma.$transaction(async (tx) => {
-      const transaction = await tx.transaction.create({
-        data: {
-          total: data.total,
-          items: {
-            create: data.items.map(item => ({
-              productId: item.productId,
-              quantity: item.quantity,
-              price: item.price
-            }))
-          }
-        }
-      })
-
-      // Update stok produk
-      for (const item of data.items) {
-        await tx.product.update({
-          where: { id: item.productId },
-          data: {
-            stock: {
-              decrement: item.quantity
-            }
-          }
-        })
-      }
-
-      return transaction
-    })
   })
 
   // IPC test

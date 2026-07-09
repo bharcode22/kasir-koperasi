@@ -501,6 +501,11 @@ body {
   box-shadow: 0 0 0 3px var(--primary-glow);
 }
 
+.form-select option {
+  background-color: #111827;
+  color: white;
+}
+
 .submit-btn {
   background: var(--success);
   border: none;
@@ -543,3 +548,252 @@ body {
     opacity: 1;
   }
 }
+
+.pos-grid.full-width {
+  grid-template-columns: 1fr;
+}
+
+/* Split Layout for Manage Tab */
+.manage-tab-container {
+  display: grid;
+  grid-template-columns: 1.8fr 1.2fr;
+  gap: 20px;
+  height: 100%;
+  min-height: 0;
+}
+
+/* Product Table Styles */
+.product-table-wrapper {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  gap: 12px;
+}
+
+.table-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.table-search {
+  max-width: 240px;
+}
+
+.table-scroll-container {
+  flex: 1;
+  overflow-y: auto;
+  border: 1px solid var(--glass-border);
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.15);
+}
+
+.pos-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  text-align: left;
+}
+
+.pos-table th,
+.pos-table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.pos-table th {
+  background: rgba(255, 255, 255, 0.03);
+  font-weight: 600;
+  color: #9ca3af;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.pos-table tr:hover {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.sku-cell {
+  font-family: monospace;
+  color: #9ca3af;
+  font-weight: 500;
+}
+
+.table-stock-badge {
+  background: rgba(16, 185, 129, 0.1);
+  color: var(--success);
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-weight: 600;
+  font-size: 11px;
+}
+
+.table-stock-badge.out {
+  background: rgba(239, 68, 68, 0.1);
+  color: var(--danger);
+}
+
+.table-actions {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+}
+
+.table-actions button {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 6px;
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.table-actions button:hover {
+  background: rgba(255, 255, 255, 0.15);
+  transform: scale(1.05);
+}
+
+.table-actions .action-btn-edit {
+  color: #818cf8;
+}
+
+.table-actions .action-btn-edit:hover {
+  background: rgba(99, 102, 241, 0.15);
+  border-color: rgba(99, 102, 241, 0.4);
+}
+
+.table-actions .action-btn-delete {
+  color: #f87171;
+}
+
+.table-actions .action-btn-delete:hover {
+  background: rgba(239, 68, 68, 0.15);
+  border-color: rgba(239, 68, 68, 0.4);
+}
+
+/* Transaction Detail Receipt styling */
+.detail-transaction-panel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.detail-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  border: 2px dashed rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  padding: 30px;
+}
+
+.receipt-container {
+  background: #1f2937;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  padding: 24px;
+  font-family: 'Courier New', Courier, monospace;
+  color: #d1d5db;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.3);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.receipt-header {
+  text-align: center;
+}
+
+.receipt-title {
+  font-size: 16px;
+  font-weight: 800;
+  letter-spacing: 2px;
+  color: white;
+  margin-bottom: 8px;
+}
+
+.receipt-meta {
+  font-size: 12px;
+  color: #9ca3af;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.receipt-divider {
+  border-top: 2px dashed rgba(255, 255, 255, 0.15);
+  margin: 4px 0;
+}
+
+.receipt-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.receipt-table th {
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  color: white;
+  font-weight: 600;
+}
+
+.receipt-table td {
+  padding: 8px 0;
+  vertical-align: top;
+}
+
+.receipt-item-type {
+  display: inline-block;
+  font-size: 10px;
+  background: rgba(129, 140, 248, 0.15);
+  color: #818cf8;
+  padding: 1px 4px;
+  border-radius: 4px;
+  margin-top: 2px;
+  font-family: var(--font-sans);
+}
+
+.receipt-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 13px;
+}
+
+.receipt-summary-row {
+  display: flex;
+  justify-content: space-between;
+}
+
+.receipt-summary-row.grand-total {
+  font-size: 15px;
+  font-weight: 800;
+  color: white;
+  padding-top: 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.receipt-footer {
+  text-align: center;
+  font-size: 12px;
+  color: #9ca3af;
+  margin-top: 12px;
+  letter-spacing: 1px;
+}
+
+/* Active row highlight in transaction list */
+.pos-table tr.active-row {
+  background: rgba(255, 255, 255, 0.04) !important;
+  border-left: 3px solid #818cf8;
+}
+

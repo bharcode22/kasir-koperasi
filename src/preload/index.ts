@@ -4,10 +4,19 @@ import { electronAPI } from '@electron-toolkit/preload'
 // Custom APIs for renderer
 const api = {
   getProducts: () => ipcRenderer.invoke('get-products'),
-  createProduct: (data: { name: string; price: number; sku: string; stock: number }) =>
+  createProduct: (data: { name: string; price: number; stock: number; type: string }) =>
     ipcRenderer.invoke('create-product', data),
   createTransaction: (data: { total: number; items: { productId: number; quantity: number; price: number }[] }) =>
-    ipcRenderer.invoke('create-transaction', data)
+    ipcRenderer.invoke('create-transaction', data),
+  updateProduct: (data: { id: number; name: string; price: number; stock: number; type: string }) =>
+    ipcRenderer.invoke('update-product', data),
+  deleteProduct: (id: number) => ipcRenderer.invoke('delete-product', id),
+  getProductTypes: () => ipcRenderer.invoke('get-product-types'),
+  createProductType: (data: { name: string }) => ipcRenderer.invoke('create-product-type', data),
+  updateProductType: (data: { id: number; name: string }) => ipcRenderer.invoke('update-product-type', data),
+  deleteProductType: (id: number) => ipcRenderer.invoke('delete-product-type', id),
+  getTransactions: () => ipcRenderer.invoke('get-transactions'),
+  deleteTransaction: (id: number) => ipcRenderer.invoke('delete-transaction', id)
 }
 
 // Use `contextBridge` APIs to expose Electron APIs to

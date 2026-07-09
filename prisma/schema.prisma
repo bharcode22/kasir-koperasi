@@ -13,8 +13,8 @@ datasource db {
 model Product {
   id               Int               @id @default(autoincrement())
   name             String
+  type             String            @default("")
   price            Float
-  sku              String            @unique
   stock            Int               @default(0)
   createdAt        DateTime          @default(now())
   transactionItems TransactionItem[]
@@ -24,6 +24,8 @@ model Transaction {
   id        Int               @id @default(autoincrement())
   createdAt DateTime          @default(now())
   total     Float
+  qty       Int               @default(0)
+  price     Float             @default(0)
   items     TransactionItem[]
 }
 
@@ -37,3 +39,14 @@ model TransactionItem {
   price         Float
 }
 
+model ProductType {
+  id   Int    @id @default(autoincrement())
+  name String
+}
+
+model Users {
+  id       Int    @id @default(autoincrement())
+  username String
+  name     String
+  password String
+}
