@@ -41,3 +41,7 @@ npmRebuild: false
 publish:
   provider: generic
   url: https://example.com/auto-updates
+
+extraResources:
+  - from: prisma/dev.db
+    to: prisma/dev.db
