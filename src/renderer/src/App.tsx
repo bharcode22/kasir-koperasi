@@ -161,8 +161,8 @@ function App(): React.JSX.Element {
       {/* POS Header */}
       <header className="pos-header">
         <div className="pos-title-area">
-          <div className="pos-logo">KP</div>
-          <span className="pos-title">Koperasi Kasir Pingiran</span>
+          <div className="pos-logo">A</div>
+          <span className="pos-title">Kasir</span>
         </div>
         <div className="pos-status">
           <div className="status-dot"></div>
@@ -245,19 +245,19 @@ function App(): React.JSX.Element {
                       id="prod-name"
                       type="text"
                       className="form-control"
-                      placeholder="Contoh: Kopi Bubuk 100g"
+                      placeholder="Masukkan nama barang"
                       value={formData.name}
                       onChange={(e): void => setFormData({ ...formData, name: e.target.value })}
                       required
                     />
                   </div>
                   <div className="form-group">
-                    <label htmlFor="prod-sku">SKU / Kode Barang</label>
+                    <label htmlFor="prod-sku">Kode Barang</label>
                     <input
                       id="prod-sku"
                       type="text"
                       className="form-control"
-                      placeholder="Contoh: BRG-001"
+                      placeholder="BRG-001"
                       value={formData.sku}
                       onChange={(e): void => setFormData({ ...formData, sku: e.target.value })}
                       required
@@ -265,7 +265,7 @@ function App(): React.JSX.Element {
                   </div>
                   <div className="form-group-row" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                     <div className="form-group">
-                      <label htmlFor="prod-price">Harga (Rupiah)</label>
+                      <label htmlFor="prod-price">Harga (satuan)</label>
                       <input
                         id="prod-price"
                         type="number"
