@@ -17,6 +17,9 @@ declare global {
       deleteTransaction: (id: number) => Promise<any>
       login: (data: { username: string; password: string }) => Promise<{ id: number; username: string; name: string }>
       register: (data: { username: string; name: string; password: string }) => Promise<{ id: number; username: string; name: string }>
+      exportToExcel: (transactions: any[]) => Promise<{ success: boolean; filePath?: string; message?: string }>
+      printToPDF: (transaction: any) => Promise<{ success: boolean; filePath?: string; message?: string }>
+      printToPrinter: (transaction: any) => Promise<{ success: boolean; message?: string }>
     }
   }
 }

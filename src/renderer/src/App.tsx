@@ -263,6 +263,7 @@ function App(): React.JSX.Element {
       try {
         await window.api.deleteTransaction(id)
         showToast('Transaksi berhasil dihapus!')
+        fetchProducts() // Muat ulang produk untuk memperbarui stok barang di UI
         fetchTransactions()
       } catch (err) {
         console.error(err)

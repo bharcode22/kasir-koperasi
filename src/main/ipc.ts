@@ -1,6 +1,8 @@
-import { ipcMain } from 'electron'
+import { ipcMain, dialog, BrowserWindow } from 'electron'
 import { getPrisma } from './database'
 import bcrypt from 'bcryptjs'
+import * as XLSX from 'xlsx'
+import * as fs from 'fs'
 
 export function registerIpcHandlers(): void {
   // IPC handler untuk mengambil semua produk
@@ -155,15 +157,33 @@ ipcMain.handle(
     })
   })
 
-  // IPC handler untuk menghapus transaksi dari riwayat
+  // IPC handler untuk menghapus transaksi dari riwayat dan mengembalikan stok barang
   ipcMain.handle('delete-transaction', async (_, id: number) => {
     const prisma = getPrisma()
     return await prisma.$transaction(async (tx) => {
-      // Hapus detail item transaksi dulu (karena foreign key constraint)
+      // 1. Ambil detail items untuk mengembalikan stok
+      const items = await tx.transactionItem.findMany({
+        where: { transactionId: id }
+      })
+
+      // 2. Kembalikan stok untuk setiap produk
+      for (const item of items) {
+        await tx.product.update({
+          where: { id: item.productId },
+          data: {
+            stock: {
+              increment: item.quantity
+            }
+          }
+        })
+      }
+
+      // 3. Hapus detail item transaksi (karena foreign key constraint)
       await tx.transactionItem.deleteMany({
         where: { transactionId: id }
       })
-      // Hapus transaksi utama
+
+      // 4. Hapus transaksi utama
       return await tx.transaction.delete({
         where: { id }
       })
@@ -197,5 +217,242 @@ ipcMain.handle(
       throw new Error('Username atau password salah')
     }
     return { id: user.id, username: user.username, name: user.name }
+  })
+
+  // IPC handler untuk ekspor data transaksi ke excel
+  ipcMain.handle('export-to-excel', async (_, transactions: any[]) => {
+    const { filePath } = await dialog.showSaveDialog({
+      title: 'Simpan Laporan Transaksi',
+      defaultPath: 'laporan-transaksi.xlsx',
+      filters: [{ name: 'Excel Files', extensions: ['xlsx'] }]
+    })
+
+    if (!filePath) {
+      return { success: false, message: 'Ekspor dibatalkan' }
+    }
+
+    // Format Detail Item Transaksi lengkap
+    const rows: any[] = []
+    transactions.forEach((t) => {
+      if (t.items && Array.isArray(t.items)) {
+        t.items.forEach((item) => {
+          rows.push({
+            'ID Transaksi': t.id,
+            'Tanggal': new Date(t.createdAt).toLocaleString('id-ID'),
+            'Penjual (Kasir)': t.seller || 'Umum',
+            'Pembeli': t.buyer || 'Umum',
+            'Barang': item.product?.name || 'Barang Dihapus',
+            'Qty': item.quantity,
+            'Harga Satuan': item.price
+          })
+        })
+      }
+    })
+
+    try {
+      const wb = XLSX.utils.book_new()
+      const ws = XLSX.utils.json_to_sheet(rows)
+      XLSX.utils.book_append_sheet(wb, ws, 'Laporan Transaksi')
+
+      XLSX.writeFile(wb, filePath)
+      return { success: true, filePath }
+    } catch (err: any) {
+      console.error('Gagal menulis file excel:', err)
+      return { success: false, message: err.message || 'Gagal menyimpan file' }
+    }
+  })
+
+  // IPC handler untuk cetak ke PDF
+  ipcMain.handle('print-to-pdf', async (_, transaction: any) => {
+    const { filePath } = await dialog.showSaveDialog({
+      title: 'Simpan Nota Belanja (PDF)',
+      defaultPath: `nota-transaksi-${transaction.id}.pdf`,
+      filters: [{ name: 'PDF Files', extensions: ['pdf'] }]
+    })
+
+    if (!filePath) {
+      return { success: false, message: 'Cetak PDF dibatalkan' }
+    }
+
+    try {
+      const html = generateReceiptHtml(transaction)
+      await printHtml(html, 'pdf', filePath)
+      return { success: true, filePath }
+    } catch (err: any) {
+      console.error('Gagal cetak PDF:', err)
+      return { success: false, message: err.message || 'Gagal membuat PDF' }
+    }
+  })
+
+  // IPC handler untuk cetak langsung ke printer
+  ipcMain.handle('print-to-printer', async (_, transaction: any) => {
+    try {
+      const html = generateReceiptHtml(transaction)
+      await printHtml(html, 'printer')
+      return { success: true }
+    } catch (err: any) {
+      console.error('Gagal cetak ke printer:', err)
+      return { success: false, message: err.message || 'Gagal mengirim ke printer' }
+    }
+  })
+}
+
+// Helper untuk menghasilkan HTML nota belanja/struk thermal
+function generateReceiptHtml(t: any): string {
+  const itemsHtml = (t.items || []).map((item: any) => `
+    <tr>
+      <td>${item.product?.name || 'Barang Dihapus'}</td>
+      <td style="text-align: center;">${item.quantity}</td>
+      <td style="text-align: right;">Rp${item.price.toLocaleString('id-ID')}</td>
+    </tr>
+  `).join('')
+
+  const dateStr = new Date(t.createdAt).toLocaleString('id-ID', {
+    year: 'numeric',
+    month: 'short',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit'
+  })
+
+  return `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <title>Nota Belanja #${t.id}</title>
+      <style>
+        @page {
+          size: 80mm 160mm;
+          margin: 0;
+        }
+        body {
+          font-family: 'Courier New', Courier, monospace;
+          font-size: 11px;
+          color: black;
+          margin: 0;
+          padding: 8px;
+          width: 80mm;
+          box-sizing: border-box;
+        }
+        .text-center { text-align: center; }
+        .text-right { text-align: right; }
+        .bold { font-weight: bold; }
+        .header { margin-bottom: 10px; }
+        .title { font-size: 14px; font-weight: bold; margin-bottom: 2px; }
+        .divider { border-top: 1px dashed black; margin: 8px 0; }
+        .meta-table, .items-table { width: 100%; border-collapse: collapse; }
+        .meta-table td { font-size: 10px; padding: 1px 0; vertical-align: top; }
+        .items-table th, .items-table td { font-size: 10px; padding: 2px 0; vertical-align: top; }
+        .items-table th { border-bottom: 1px dashed black; text-align: left; }
+        .summary-section { margin-top: 8px; }
+        .summary-row { display: flex; justify-content: space-between; font-size: 10px; padding: 1px 0; }
+        .grand-total { font-weight: bold; font-size: 12px; border-top: 1px dashed black; padding-top: 4px; margin-top: 4px; }
+        .footer { margin-top: 15px; font-size: 9px; }
+      </style>
+    </head>
+    <body>
+      <div class="header text-center">
+        <div class="title">KASIR KOPERASI</div>
+        <div style="font-size: 10px;">Koperasi Winangun Artha</div>
+        <div class="divider"></div>
+      </div>
+      
+      <table class="meta-table">
+        <tbody>
+          <tr><td style="width: 90px;">ID Transaksi</td><td>: #${t.id}</td></tr>
+          <tr><td>Tanggal</td><td>: ${dateStr}</td></tr>
+          <tr><td>Penjual</td><td>: ${t.seller || 'Umum'}</td></tr>
+          <tr><td>Pembeli</td><td>: ${t.buyer || 'Umum'}</td></tr>
+        </tbody>
+      </table>
+      
+      <div class="divider"></div>
+      
+      <table class="items-table">
+        <thead>
+          <tr>
+            <th>Barang</th>
+            <th style="text-align: center; width: 35px;">Qty</th>
+            <th style="text-align: right; width: 75px;">Harga</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${itemsHtml}
+        </tbody>
+      </table>
+      
+      <div class="divider"></div>
+      
+      <div class="summary-section">
+        <div class="summary-row">
+          <span>Subtotal</span>
+          <span>Rp${t.total.toLocaleString('id-ID')}</span>
+        </div>
+        <div class="summary-row">
+          <span>Pajak (0%)</span>
+          <span>Rp0</span>
+        </div>
+        <div class="summary-row grand-total">
+          <span>TOTAL AKHIR</span>
+          <span>Rp${t.total.toLocaleString('id-ID')}</span>
+        </div>
+      </div>
+      
+      <div class="footer text-center">
+        <div>Terima Kasih Atas Kunjungan Anda</div>
+        <div>Barang yang sudah dibeli tidak dapat ditukar/dikembalikan</div>
+      </div>
+    </body>
+    </html>
+  `
+}
+
+// Helper untuk mencetak konten HTML ke PDF atau printer fisik menggunakan window tersembunyi
+async function printHtml(htmlContent: string, mode: 'pdf' | 'printer', filePath?: string): Promise<any> {
+  return new Promise((resolve, reject) => {
+    const tempWindow = new BrowserWindow({
+      show: false,
+      webPreferences: {
+        nodeIntegration: false,
+        contextIsolation: true
+      }
+    })
+
+    const dataUrl = 'data:text/html;charset=utf-8,' + encodeURIComponent(htmlContent)
+    tempWindow.loadURL(dataUrl)
+
+    tempWindow.webContents.on('did-finish-load', async () => {
+      try {
+        if (mode === 'pdf') {
+          const pdfBuffer = await tempWindow.webContents.printToPDF({
+            margins: { marginType: 'none' },
+            pageSize: { width: 80000, height: 160000 }, // 80mm x 160mm custom size in microns
+            preferCSSPageSize: true,
+            printBackground: true
+          })
+          if (filePath) {
+            fs.writeFileSync(filePath, pdfBuffer)
+          }
+          tempWindow.destroy()
+          resolve({ success: true })
+        } else {
+          tempWindow.webContents.print({
+            silent: false,
+            printBackground: true
+          }, (success, errorType) => {
+            tempWindow.destroy()
+            if (success) {
+              resolve({ success: true })
+            } else {
+              reject(new Error(errorType || 'Pencetakan dibatalkan'))
+            }
+          })
+        }
+      } catch (err) {
+        tempWindow.destroy()
+        reject(err)
+      }
+    })
   })
 }

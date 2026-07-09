@@ -38,6 +38,65 @@ export default function TransactionManager({
 }: TransactionManagerProps): React.JSX.Element {
   const [selectedTx, setSelectedTx] = useState<Transaction | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
+  const [startDate, setStartDate] = useState('')
+  const [endDate, setEndDate] = useState('')
+  const [exporting, setExporting] = useState(false)
+  const [printingPDF, setPrintingPDF] = useState(false)
+  const [printingPrinter, setPrintingPrinter] = useState(false)
+
+  const handleExport = async (): Promise<void> => {
+    if (filtered.length === 0) return
+    setExporting(true)
+    try {
+      const res = await window.api.exportToExcel(filtered)
+      if (res.success) {
+        alert(`Data berhasil di-export ke:\n${res.filePath}`)
+      } else if (res.message !== 'Ekspor dibatalkan') {
+        alert(`Gagal mengekspor data: ${res.message}`)
+      }
+    } catch (err: any) {
+      console.error(err)
+      alert(`Terjadi kesalahan: ${err.message || err}`)
+    } finally {
+      setExporting(false)
+    }
+  }
+
+  const handlePrintPDF = async (): Promise<void> => {
+    if (!selectedTx) return
+    setPrintingPDF(true)
+    try {
+      const res = await window.api.printToPDF(selectedTx)
+      if (res.success) {
+        alert(`Nota berhasil disimpan ke PDF:\n${res.filePath}`)
+      } else if (res.message !== 'Cetak PDF dibatalkan') {
+        alert(`Gagal menyimpan PDF: ${res.message}`)
+      }
+    } catch (err: any) {
+      console.error(err)
+      alert(`Terjadi kesalahan: ${err.message || err}`)
+    } finally {
+      setPrintingPDF(false)
+    }
+  }
+
+  const handlePrintPrinter = async (): Promise<void> => {
+    if (!selectedTx) return
+    setPrintingPrinter(true)
+    try {
+      const res = await window.api.printToPrinter(selectedTx)
+      if (res.success) {
+        // successfully sent to print queue
+      }
+    } catch (err: any) {
+      console.error(err)
+      if (err.message !== 'Pencetakan dibatalkan') {
+        alert(`Gagal mengirim ke printer: ${err.message || err}`)
+      }
+    } finally {
+      setPrintingPrinter(false)
+    }
+  }
 
   const handleSelect = (tx: Transaction): void => {
     setSelectedTx(tx)
@@ -50,8 +109,26 @@ export default function TransactionManager({
     }
   }
 
-  // Filter transactions by ID
-  const filtered = transactions.filter((t) => t.id.toString().includes(searchQuery.trim()))
+  // Filter transactions by ID, Seller, Buyer, and Date Range
+  const filtered = transactions.filter((t) => {
+    const q = searchQuery.trim().toLowerCase()
+    const matchSearch =
+      !q ||
+      t.id.toString().includes(q) ||
+      (t.seller || '').toLowerCase().includes(q) ||
+      (t.buyer || '').toLowerCase().includes(q)
+
+    const localDate = new Date(t.createdAt)
+    const localYYYY = localDate.getFullYear()
+    const localMM = String(localDate.getMonth() + 1).padStart(2, '0')
+    const localDD = String(localDate.getDate()).padStart(2, '0')
+    const dateKey = `${localYYYY}-${localMM}-${localDD}`
+
+    const matchStart = !startDate || dateKey >= startDate
+    const matchEnd = !endDate || dateKey <= endDate
+
+    return matchSearch && matchStart && matchEnd
+  })
 
   const formatDate = (dateStr: string): string => {
     const d = new Date(dateStr)
@@ -73,12 +150,55 @@ export default function TransactionManager({
             Riwayat Transaksi ({transactions.length})
           </h4>
           <input
-            type="number"
-            placeholder="Cari ID Transaksi..."
+            type="text"
+            placeholder="Cari ID, Penjual, Pembeli..."
             className="search-input table-search"
             value={searchQuery}
             onChange={(e): void => setSearchQuery(e.target.value)}
           />
+        </div>
+
+        <div className="transaction-filter-bar">
+          <div className="filter-item">
+            <label htmlFor="filter-start-date">Dari Tanggal</label>
+            <input
+              id="filter-start-date"
+              type="date"
+              className="filter-input"
+              value={startDate}
+              onChange={(e): void => setStartDate(e.target.value)}
+            />
+          </div>
+          <div className="filter-item">
+            <label htmlFor="filter-end-date">Sampai Tanggal</label>
+            <input
+              id="filter-end-date"
+              type="date"
+              className="filter-input"
+              value={endDate}
+              onChange={(e): void => setEndDate(e.target.value)}
+            />
+          </div>
+          {(startDate || endDate || searchQuery) && (
+            <button
+              className="reset-filter-btn"
+              onClick={(): void => {
+                setStartDate('')
+                setEndDate('')
+                setSearchQuery('')
+              }}
+            >
+              Reset
+            </button>
+          )}
+          <button
+            className="export-excel-btn"
+            onClick={handleExport}
+            disabled={exporting || filtered.length === 0}
+            style={{ marginLeft: 'auto' }}
+          >
+            {exporting ? 'Mengekspor...' : '📊 Export Excel'}
+          </button>
         </div>
 
         <div className="table-scroll-container">
@@ -180,86 +300,105 @@ export default function TransactionManager({
             </span>
           </div>
         ) : (
-          <div className="receipt-container">
-            <div className="receipt-header">
-              <div className="receipt-title">NOTA BELANJA</div>
-              <div className="receipt-meta">
-                <table className="receipt-meta-table">
-                  <tbody>
-                    <tr>
-                      <td style={{ width: '120px' }}>ID Transaksi</td>
-                      <td>: #{selectedTx.id}</td>
-                    </tr>
-                    <tr>
-                      <td>Tanggal</td>
-                      <td>: {formatDate(selectedTx.createdAt)}</td>
-                    </tr>
-                    {selectedTx.seller && (
-                      <tr>
-                        <td>Penjual</td>
-                        <td>: {selectedTx.seller}</td>
-                      </tr>
-                    )}
-                    {selectedTx.buyer && (
-                      <tr>
-                        <td>Pembeli</td>
-                        <td>: {selectedTx.buyer}</td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
+          <>
+            <div className="receipt-actions">
+              <button
+                className="receipt-action-btn pdf-btn"
+                onClick={handlePrintPDF}
+                disabled={printingPDF || printingPrinter}
+              >
+                {printingPDF ? 'Mempersiapkan PDF...' : '📄 Simpan PDF'}
+              </button>
+              <button
+                className="receipt-action-btn print-btn"
+                onClick={handlePrintPrinter}
+                disabled={printingPDF || printingPrinter}
+              >
+                {printingPrinter ? 'Mengirim ke Printer...' : '🖨️ Cetak Printer'}
+              </button>
             </div>
 
-            <div className="receipt-divider"></div>
-
-            <table className="receipt-table">
-              <thead>
-                <tr>
-                  <th>Barang</th>
-                  <th style={{ textAlign: 'center' }}>Qty</th>
-                  <th style={{ textAlign: 'right' }}>Harga Satuan</th>
-                  <th style={{ textAlign: 'right' }}>Total</th>
-                </tr>
-              </thead>
-              <tbody>
-                {selectedTx.items.map((item) => (
-                  <tr key={item.id}>
-                    <td>
-                      <div>{item.product?.name || 'Barang Dihapus'}</div>
-                      {item.product?.type && (
-                        <span className="receipt-item-type">{item.product.type}</span>
+            <div className="receipt-container">
+              <div className="receipt-header">
+                <div className="receipt-title">NOTA BELANJA</div>
+                <div className="receipt-meta">
+                  <table className="receipt-meta-table">
+                    <tbody>
+                      <tr>
+                        <td style={{ width: '120px' }}>ID Transaksi</td>
+                        <td>: #{selectedTx.id}</td>
+                      </tr>
+                      <tr>
+                        <td>Tanggal</td>
+                        <td>: {formatDate(selectedTx.createdAt)}</td>
+                      </tr>
+                      {selectedTx.seller && (
+                        <tr>
+                          <td>Penjual</td>
+                          <td>: {selectedTx.seller}</td>
+                        </tr>
                       )}
-                    </td>
-                    <td style={{ textAlign: 'center' }}>{item.quantity}</td>
-                    <td style={{ textAlign: 'right' }}>Rp{item.price.toLocaleString('id-ID')}</td>
-                    <td style={{ textAlign: 'right', fontWeight: 600 }}>
-                      Rp{(item.price * item.quantity).toLocaleString('id-ID')}
-                    </td>
+                      {selectedTx.buyer && (
+                        <tr>
+                          <td>Pembeli</td>
+                          <td>: {selectedTx.buyer}</td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              <div className="receipt-divider"></div>
+
+              <table className="receipt-table">
+                <thead>
+                  <tr>
+                    <th>Barang</th>
+                    <th style={{ textAlign: 'center' }}>Qty</th>
+                    <th style={{ textAlign: 'right' }}>Harga Satuan</th>
+                    <th style={{ textAlign: 'right' }}>Total</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {selectedTx.items.map((item) => (
+                    <tr key={item.id}>
+                      <td>
+                        <div>{item.product?.name || 'Barang Dihapus'}</div>
+                        {item.product?.type && (
+                          <span className="receipt-item-type">{item.product.type}</span>
+                        )}
+                      </td>
+                      <td style={{ textAlign: 'center' }}>{item.quantity}</td>
+                      <td style={{ textAlign: 'right' }}>Rp{item.price.toLocaleString('id-ID')}</td>
+                      <td style={{ textAlign: 'right', fontWeight: 600 }}>
+                        Rp{(item.price * item.quantity).toLocaleString('id-ID')}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
 
-            <div className="receipt-divider"></div>
+              <div className="receipt-divider"></div>
 
-            <div className="receipt-summary">
-              <div className="receipt-summary-row">
-                <span>Subtotal</span>
-                <span>Rp{selectedTx.total.toLocaleString('id-ID')}</span>
+              <div className="receipt-summary">
+                <div className="receipt-summary-row">
+                  <span>Subtotal</span>
+                  <span>Rp{selectedTx.total.toLocaleString('id-ID')}</span>
+                </div>
+                <div className="receipt-summary-row">
+                  <span>Pajak (0%)</span>
+                  <span>Rp0</span>
+                </div>
+                <div className="receipt-summary-row grand-total">
+                  <span>TOTAL AKHIR</span>
+                  <span>Rp{selectedTx.total.toLocaleString('id-ID')}</span>
+                </div>
               </div>
-              <div className="receipt-summary-row">
-                <span>Pajak (0%)</span>
-                <span>Rp0</span>
-              </div>
-              <div className="receipt-summary-row grand-total">
-                <span>TOTAL AKHIR</span>
-                <span>Rp{selectedTx.total.toLocaleString('id-ID')}</span>
-              </div>
+
+              <div className="receipt-footer">Terima Kasih Atas Kunjungan Anda</div>
             </div>
-
-            <div className="receipt-footer">Terima Kasih Atas Kunjungan Anda</div>
-          </div>
+          </>
         )}
       </div>
     </div>

@@ -18,7 +18,10 @@ const api = {
   getTransactions: () => ipcRenderer.invoke('get-transactions'),
   deleteTransaction: (id: number) => ipcRenderer.invoke('delete-transaction', id),
   login: (data: { username: string; password: string }) => ipcRenderer.invoke('login', data),
-  register: (data: { username: string; name: string; password: string }) => ipcRenderer.invoke('register', data)
+  register: (data: { username: string; name: string; password: string }) => ipcRenderer.invoke('register', data),
+  exportToExcel: (transactions: any[]) => ipcRenderer.invoke('export-to-excel', transactions),
+  printToPDF: (transaction: any) => ipcRenderer.invoke('print-to-pdf', transaction),
+  printToPrinter: (transaction: any) => ipcRenderer.invoke('print-to-printer', transaction)
 }
 
 // Use `contextBridge` APIs to expose Electron APIs to
