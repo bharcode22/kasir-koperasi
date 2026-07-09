@@ -1,5 +1,6 @@
 import { ipcMain } from 'electron'
 import { getPrisma } from './database'
+import bcrypt from 'bcryptjs'
 
 export function registerIpcHandlers(): void {
   // IPC handler untuk mengambil semua produk
@@ -50,8 +51,15 @@ export function registerIpcHandlers(): void {
   // IPC handler untuk menghapus produk
   ipcMain.handle('delete-product', async (_, id: number) => {
     const prisma = getPrisma()
-    return await prisma.product.delete({
-      where: { id }
+    return await prisma.$transaction(async (tx) => {
+      // Hapus semua TransactionItem yang mereferensikan produk ini terlebih dahulu
+      await tx.transactionItem.deleteMany({
+        where: { productId: id }
+      })
+      // Baru hapus produknya
+      return await tx.product.delete({
+        where: { id }
+      })
     })
   })
 
@@ -94,18 +102,20 @@ export function registerIpcHandlers(): void {
 // IPC handler untuk memproses transaksi kasir (menyimpan transaksi + potong stok)
 ipcMain.handle(
   'create-transaction',
-  async (_, data: { items: { productId: number; quantity: number; price: number }[] }) => {
+  async (_, data: { seller: string; buyer: string; items: { productId: number; quantity: number; price: number }[] }) => {
     const prisma = getPrisma()
     // Calculate total quantity and total price from items
     const totalQty = data.items.reduce((sum, item) => sum + item.quantity, 0)
     const totalPrice = data.items.reduce((sum, item) => sum + item.price * item.quantity, 0)
     return await prisma.$transaction(async (tx) => {
-      // 1. Simpan Transaksi Utama dengan qty dan total price
+      // 1. Simpan Transaksi Utama dengan qty dan total price beserta seller & buyer
       const transaction = await tx.transaction.create({
         data: {
           total: totalPrice,
           qty: totalQty,
           price: totalPrice,
+          seller: data.seller,
+          buyer: data.buyer,
           items: {
             create: data.items.map((item) => ({
               productId: item.productId,
@@ -158,5 +168,34 @@ ipcMain.handle(
         where: { id }
       })
     })
+  })
+
+  // IPC handler untuk register user baru
+  ipcMain.handle('register', async (_, data: { username: string; name: string; password: string }) => {
+    const prisma = getPrisma()
+    // Cek apakah username sudah dipakai
+    const existing = await prisma.users.findFirst({ where: { username: data.username } })
+    if (existing) {
+      throw new Error('Username sudah digunakan')
+    }
+    const hashed = await bcrypt.hash(data.password, 10)
+    const user = await prisma.users.create({
+      data: { username: data.username, name: data.name, password: hashed }
+    })
+    return { id: user.id, username: user.username, name: user.name }
+  })
+
+  // IPC handler untuk login
+  ipcMain.handle('login', async (_, data: { username: string; password: string }) => {
+    const prisma = getPrisma()
+    const user = await prisma.users.findFirst({ where: { username: data.username } })
+    if (!user) {
+      throw new Error('Username atau password salah')
+    }
+    const valid = await bcrypt.compare(data.password, user.password)
+    if (!valid) {
+      throw new Error('Username atau password salah')
+    }
+    return { id: user.id, username: user.username, name: user.name }
   })
 }

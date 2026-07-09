@@ -6,7 +6,7 @@ declare global {
     api: {
       getProducts: () => Promise<any[]>
       createProduct: (data: { name: string; price: number; stock: number; type: string }) => Promise<any>
-      createTransaction: (data: { total: number; items: { productId: number; quantity: number; price: number }[] }) => Promise<any>
+      createTransaction: (data: { seller: string; buyer: string; items: { productId: number; quantity: number; price: number }[] }) => Promise<any>
       updateProduct: (data: { id: number; name: string; price: number; stock: number; type: string }) => Promise<any>
       deleteProduct: (id: number) => Promise<any>
       getProductTypes: () => Promise<any[]>
@@ -15,6 +15,8 @@ declare global {
       deleteProductType: (id: number) => Promise<any>
       getTransactions: () => Promise<any[]>
       deleteTransaction: (id: number) => Promise<any>
+      login: (data: { username: string; password: string }) => Promise<{ id: number; username: string; name: string }>
+      register: (data: { username: string; name: string; password: string }) => Promise<{ id: number; username: string; name: string }>
     }
   }
 }

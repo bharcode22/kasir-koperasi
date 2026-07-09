@@ -81,14 +81,18 @@ export default function ProductTypeManager({
             <table className="pos-table">
               <thead>
                 <tr>
+                  <th style={{ textAlign: 'center', width: '60px' }}>No</th>
                   <th style={{ textAlign: 'center', width: '60px' }}>ID</th>
                   <th>Nama Tipe</th>
                   <th style={{ textAlign: 'center', width: '160px' }}>Aksi</th>
                 </tr>
               </thead>
               <tbody>
-                {filtered.map((t) => (
+                {filtered.map((t, index) => (
                   <tr key={t.id}>
+                    <td style={{ textAlign: 'center', color: '#9ca3af', fontFamily: 'monospace' }}>
+                      {index + 1}
+                    </td>
                     <td style={{ textAlign: 'center', color: '#9ca3af', fontFamily: 'monospace' }}>
                       {t.id}
                     </td>

@@ -6,6 +6,8 @@ import ProductTable from './components/ProductTable'
 import ProductTypeManager from './components/ProductTypeManager'
 import TransactionManager from './components/TransactionManager'
 import CartPanel from './components/CartPanel'
+import LoginPage from './components/LoginPage'
+import RegisterPage from './components/RegisterPage'
 
 interface Product {
   id: number
@@ -32,12 +34,22 @@ interface Transaction {
   id: number
   createdAt: string
   total: number
+  qty: number
+  price: number
+  seller: string
+  buyer: string
   items: TransactionItem[]
 }
 
 interface CartItem {
   product: Product
   quantity: number
+}
+
+interface CurrentUser {
+  id: number
+  username: string
+  name: string
 }
 
 function App(): React.JSX.Element {
@@ -49,6 +61,17 @@ function App(): React.JSX.Element {
   const [transactions, setTransactions] = useState<Transaction[]>([])
   const [searchQuery, setSearchQuery] = useState('')
   const [cart, setCart] = useState<CartItem[]>([])
+
+  // Auth state
+  const [currentUser, setCurrentUser] = useState<CurrentUser | null>(() => {
+    try {
+      const saved = localStorage.getItem('kasir_user')
+      return saved ? JSON.parse(saved) : null
+    } catch {
+      return null
+    }
+  })
+  const [authPage, setAuthPage] = useState<'login' | 'register'>('login')
 
   // State untuk produk yang sedang diedit (null jika mode Tambah Produk)
   const [editingProduct, setEditingProduct] = useState<Product | null>(null)
@@ -95,10 +118,24 @@ function App(): React.JSX.Element {
   }
 
   useEffect(() => {
-    fetchProducts()
-    fetchProductTypes()
-    fetchTransactions()
-  }, [])
+    if (currentUser) {
+      fetchProducts()
+      fetchProductTypes()
+      fetchTransactions()
+    }
+  }, [currentUser])
+
+  // Auth handlers
+  const handleLogin = (user: CurrentUser): void => {
+    setCurrentUser(user)
+    localStorage.setItem('kasir_user', JSON.stringify(user))
+  }
+
+  const handleLogout = (): void => {
+    setCurrentUser(null)
+    localStorage.removeItem('kasir_user')
+    setCart([])
+  }
 
   // Show toast helper
   const showToast = (message: string): void => {
@@ -281,18 +318,24 @@ function App(): React.JSX.Element {
   }
 
   // Checkout
-  const handleCheckout = async (): Promise<void> => {
+  const handleCheckout = async (buyerName: string): Promise<void> => {
     if (cart.length === 0) return
 
-    const total = cart.reduce((sum, item) => sum + item.product.price * item.quantity, 0)
     const items = cart.map((item) => ({
       productId: item.product.id,
       quantity: item.quantity,
       price: item.product.price
     }))
 
+    const sellerName = currentUser?.name || 'Umum'
+    const finalBuyerName = buyerName.trim() || 'Umum'
+
     try {
-      await window.api.createTransaction({ total, items })
+      await window.api.createTransaction({
+        seller: sellerName,
+        buyer: finalBuyerName,
+        items
+      })
       showToast('Transaksi Berhasil! Stok diperbarui.')
       setCart([])
       fetchProducts()
@@ -308,6 +351,27 @@ function App(): React.JSX.Element {
     p.name.toLowerCase().includes(searchQuery.toLowerCase())
   )
 
+  // Auth guard: tampilkan login/register jika belum login
+  if (!currentUser) {
+    if (authPage === 'register') {
+      return (
+        <RegisterPage
+          onRegister={(user): void => {
+            handleLogin(user)
+            setAuthPage('login')
+          }}
+          onGoLogin={(): void => setAuthPage('login')}
+        />
+      )
+    }
+    return (
+      <LoginPage
+        onLogin={handleLogin}
+        onGoRegister={(): void => setAuthPage('register')}
+      />
+    )
+  }
+
   return (
     <div className="pos-container">
       {/* Toast Notification */}
@@ -318,7 +382,7 @@ function App(): React.JSX.Element {
       )}
 
       {/* POS Header Component */}
-      <Header />
+      <Header currentUser={currentUser} onLogout={handleLogout} />
 
       {/* Main Grid */}
       <main className={`pos-grid ${activeTab !== 'catalogue' ? 'full-width' : ''}`}>
@@ -332,6 +396,17 @@ function App(): React.JSX.Element {
                 onClick={(): void => setActiveTab('catalogue')}
               >
                 Katalog Barang
+              </button>
+              <button
+                id="tab-transactions"
+                className={`tab-btn ${activeTab === 'transactions' ? 'active' : ''}`}
+                onClick={(): void => {
+                  setActiveTab('transactions')
+                  cancelEdit()
+                  fetchTransactions()
+                }}
+              >
+                Riwayat Transaksi
               </button>
               <button
                 id="tab-manage"
@@ -352,17 +427,6 @@ function App(): React.JSX.Element {
                 }}
               >
                 Kelola Tipe
-              </button>
-              <button
-                id="tab-transactions"
-                className={`tab-btn ${activeTab === 'transactions' ? 'active' : ''}`}
-                onClick={(): void => {
-                  setActiveTab('transactions')
-                  cancelEdit()
-                  fetchTransactions()
-                }}
-              >
-                Riwayat Transaksi
               </button>
             </div>
           </div>

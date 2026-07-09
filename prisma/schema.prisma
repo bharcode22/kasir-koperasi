@@ -26,6 +26,8 @@ model Transaction {
   total     Float
   qty       Int               @default(0)
   price     Float             @default(0)
+  seller    String            @default("")
+  buyer     String            @default("")
   items     TransactionItem[]
 }
 

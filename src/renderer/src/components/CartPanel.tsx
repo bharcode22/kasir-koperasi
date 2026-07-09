@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useState } from 'react'
 
 interface Product {
   id: number
@@ -16,7 +16,7 @@ interface CartPanelProps {
   cart: CartItem[]
   onUpdateQty: (productId: number, delta: number) => void
   onRemoveFromCart: (productId: number) => void
-  onCheckout: () => void
+  onCheckout: (buyerName: string) => void
 }
 
 export default function CartPanel({
@@ -25,6 +25,7 @@ export default function CartPanel({
   onRemoveFromCart,
   onCheckout
 }: CartPanelProps): React.JSX.Element {
+  const [buyer, setBuyer] = useState('')
   const cartTotal = cart.reduce((sum, item) => sum + item.product.price * item.quantity, 0)
 
   return (
@@ -79,6 +80,21 @@ export default function CartPanel({
         )}
       </div>
 
+      {/* Buyer input area */}
+      {cart.length > 0 && (
+        <div className="buyer-input-wrapper">
+          <label htmlFor="buyer-name-input" className="buyer-input-label">Nama Pembeli</label>
+          <input
+            id="buyer-name-input"
+            type="text"
+            className="buyer-input"
+            placeholder="Masukkan nama pembeli..."
+            value={buyer}
+            onChange={(e): void => setBuyer(e.target.value)}
+          />
+        </div>
+      )}
+
       {/* Cart Summary */}
       <div className="cart-summary">
         <div className="summary-row">
@@ -97,7 +113,7 @@ export default function CartPanel({
           id="btn-pay"
           className="pay-btn"
           disabled={cart.length === 0}
-          onClick={onCheckout}
+          onClick={(): void => onCheckout(buyer.trim())}
         >
           Proses Pembayaran (Bayar)
         </button>

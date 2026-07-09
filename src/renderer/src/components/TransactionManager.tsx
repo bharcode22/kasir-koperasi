@@ -22,6 +22,8 @@ interface Transaction {
   total: number
   qty: number
   price: number
+  seller: string
+  buyer: string
   items: TransactionItem[]
 }
 
@@ -90,14 +92,17 @@ export default function TransactionManager({
             <table className="pos-table">
               <thead>
                 <tr>
+                  <th style={{ textAlign: 'center', width: '60px' }}>No</th>
                   <th style={{ textAlign: 'center', width: '60px' }}>ID</th>
+                  <th style={{ textAlign: 'center', width: '60px' }}>Penjual</th>
+                  <th style={{ textAlign: 'center', width: '60px' }}>Pembeli</th>
                   <th>Tanggal & Waktu</th>
                   <th style={{ textAlign: 'center', width: '160px' }}>Total</th>
                   <th style={{ textAlign: 'center', width: '160px' }}>Aksi</th>
                 </tr>
               </thead>
               <tbody>
-                {filtered.map((t) => (
+                {filtered.map((t, index) => (
                   <tr
                     key={t.id}
                     className={selectedTx?.id === t.id ? 'active-row' : ''}
@@ -108,7 +113,16 @@ export default function TransactionManager({
                     onClick={(): void => handleSelect(t)}
                   >
                     <td style={{ textAlign: 'center', color: '#9ca3af', fontFamily: 'monospace' }}>
+                      {index + 1}
+                    </td>
+                    <td style={{ textAlign: 'center', color: '#9ca3af', fontFamily: 'monospace' }}>
                       {t.id}
+                    </td>
+                    <td style={{ textAlign: 'center', color: '#9ca3af', fontFamily: 'monospace' }}>
+                      {t.seller}
+                    </td>
+                    <td style={{ textAlign: 'center', color: '#9ca3af', fontFamily: 'monospace' }}>
+                      {t.buyer}
                     </td>
                     <td>{formatDate(t.createdAt)}</td>
                     <td style={{ textAlign: 'right', fontWeight: 600 }}>
@@ -170,8 +184,30 @@ export default function TransactionManager({
             <div className="receipt-header">
               <div className="receipt-title">NOTA BELANJA</div>
               <div className="receipt-meta">
-                <div>ID Transaksi: #{selectedTx.id}</div>
-                <div>Tanggal: {formatDate(selectedTx.createdAt)}</div>
+                <table className="receipt-meta-table">
+                  <tbody>
+                    <tr>
+                      <td style={{ width: '120px' }}>ID Transaksi</td>
+                      <td>: #{selectedTx.id}</td>
+                    </tr>
+                    <tr>
+                      <td>Tanggal</td>
+                      <td>: {formatDate(selectedTx.createdAt)}</td>
+                    </tr>
+                    {selectedTx.seller && (
+                      <tr>
+                        <td>Penjual</td>
+                        <td>: {selectedTx.seller}</td>
+                      </tr>
+                    )}
+                    {selectedTx.buyer && (
+                      <tr>
+                        <td>Pembeli</td>
+                        <td>: {selectedTx.buyer}</td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
               </div>
             </div>
 

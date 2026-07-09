@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useMemo, useState } from 'react'
 
 interface Product {
   id: number
@@ -20,8 +20,22 @@ export default function ProductTable({
   onDeleteClick
 }: ProductTableProps): React.JSX.Element {
   const [query, setQuery] = useState('')
+  const [activeType, setActiveType] = useState<string>('Semua')
 
-  const filtered = products.filter((p) => p.name.toLowerCase().includes(query.toLowerCase()))
+  // Derive unique types for filter buttons
+  const types = useMemo(() => {
+    const set = new Set(products.map((p) => p.type?.trim() || 'Umum'))
+    return ['Semua', ...Array.from(set).sort()]
+  }, [products])
+
+  const filtered = useMemo(() => {
+    return products.filter((p) => {
+      const matchQuery = p.name.toLowerCase().includes(query.toLowerCase())
+      const matchType =
+        activeType === 'Semua' || (p.type?.trim() || 'Umum') === activeType
+      return matchQuery && matchType
+    })
+  }, [products, query, activeType])
 
   return (
     <div className="product-table-wrapper">
@@ -38,6 +52,19 @@ export default function ProductTable({
         />
       </div>
 
+      {/* Filter type buttons */}
+      <div className="filter-type-bar">
+        {types.map((t) => (
+          <button
+            key={t}
+            className={`filter-type-btn ${activeType === t ? 'active' : ''}`}
+            onClick={(): void => setActiveType(t)}
+          >
+            {t}
+          </button>
+        ))}
+      </div>
+
       <div className="table-scroll-container">
         {filtered.length === 0 ? (
           <div
@@ -49,6 +76,7 @@ export default function ProductTable({
           <table className="pos-table">
             <thead>
               <tr>
+                <th style={{ textAlign: 'center', width: '60px' }}>No</th>
                 <th style={{ textAlign: 'center', width: '60px' }}>ID</th>
                 <th>Nama Barang</th>
                 <th>Tipe</th>
@@ -58,8 +86,11 @@ export default function ProductTable({
               </tr>
             </thead>
             <tbody>
-              {filtered.map((p) => (
+              {filtered.map((p, index) => (
                 <tr key={p.id}>
+                  <td style={{ textAlign: 'center', color: '#9ca3af', fontFamily: 'monospace' }}>
+                    {index + 1}
+                  </td>
                   <td style={{ textAlign: 'center', color: '#9ca3af', fontFamily: 'monospace' }}>
                     {p.id}
                   </td>

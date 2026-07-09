@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useMemo } from 'react'
 
 interface Product {
   id: number
@@ -21,6 +21,22 @@ export default function ProductCatalogue({
   onSearchChange,
   onProductClick
 }: ProductCatalogueProps): React.JSX.Element {
+  const filtered = useMemo(() => {
+    const q = searchQuery.toLowerCase()
+    return q ? products.filter((p) => p.name.toLowerCase().includes(q) || (p.type || '').toLowerCase().includes(q)) : products
+  }, [products, searchQuery])
+
+  // Group products by type
+  const grouped = useMemo(() => {
+    const map: Record<string, Product[]> = {}
+    for (const p of filtered) {
+      const key = p.type?.trim() || 'Umum'
+      if (!map[key]) map[key] = []
+      map[key].push(p)
+    }
+    return Object.entries(map).sort(([a], [b]) => a.localeCompare(b))
+  }, [filtered])
+
   return (
     <>
       <div className="panel-header">
@@ -29,7 +45,7 @@ export default function ProductCatalogue({
           <input
             id="search-input"
             type="text"
-            placeholder="Cari barang..."
+            placeholder="Cari barang atau tipe..."
             className="search-input"
             value={searchQuery}
             onChange={(e): void => onSearchChange(e.target.value)}
@@ -38,46 +54,37 @@ export default function ProductCatalogue({
       </div>
 
       <div className="scroll-container">
-        <div className="product-grid" id="product-grid">
-          {products.length === 0 ? (
-            <div
-              style={{ color: '#6b7280', gridColumn: '1/-1', textAlign: 'center', padding: '40px' }}
-            >
-              Tidak ada produk ditemukan.
-            </div>
-          ) : (
-            products.map((product) => (
-              <div
-                key={product.id}
-                className="product-card"
-                onClick={(): void => onProductClick(product)}
-                id={`product-card-${product.id}`}
-              >
-                <div>
+        {filtered.length === 0 ? (
+          <div style={{ color: '#6b7280', textAlign: 'center', padding: '40px' }}>
+            Tidak ada produk ditemukan.
+          </div>
+        ) : (
+          grouped.map(([type, items]) => (
+            <div key={type} className="product-group">
+              <div className="product-group-label">{type}</div>
+              <div className="product-grid" id={`product-grid-${type}`}>
+                {items.map((product) => (
                   <div
-                    style={{
-                      fontSize: '10px',
-                      textTransform: 'uppercase',
-                      color: '#818cf8',
-                      fontWeight: 600,
-                      letterSpacing: '0.05em',
-                      marginBottom: '2px'
-                    }}
+                    key={product.id}
+                    className="product-card"
+                    onClick={(): void => onProductClick(product)}
+                    id={`product-card-${product.id}`}
                   >
-                    {product.type || 'Umum'}
+                    <div>
+                      <div className="product-name">{product.name}</div>
+                    </div>
+                    <div className="product-footer">
+                      <div className="product-price">Rp{product.price.toLocaleString('id-ID')}</div>
+                      <div className={`product-stock ${product.stock <= 0 ? 'out' : ''}`}>
+                        {product.stock <= 0 ? 'Habis' : `Stok: ${product.stock}`}
+                      </div>
+                    </div>
                   </div>
-                  <div className="product-name">{product.name}</div>
-                </div>
-                <div className="product-footer">
-                  <div className="product-price">Rp{product.price.toLocaleString('id-ID')}</div>
-                  <div className={`product-stock ${product.stock <= 0 ? 'out' : ''}`}>
-                    {product.stock <= 0 ? 'Habis' : `Stok: ${product.stock}`}
-                  </div>
-                </div>
+                ))}
               </div>
-            ))
-          )}
-        </div>
+            </div>
+          ))
+        )}
       </div>
     </>
   )
