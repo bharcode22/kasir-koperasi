@@ -55,7 +55,9 @@ export default function RegisterPage({
           {error && <div className="auth-error">{error}</div>}
 
           <div className="auth-field">
-            <label htmlFor="reg-name" className="auth-label">Nama Lengkap</label>
+            <label htmlFor="reg-name" className="auth-label">
+              Nama Lengkap
+            </label>
             <input
               id="reg-name"
               type="text"
@@ -68,7 +70,9 @@ export default function RegisterPage({
           </div>
 
           <div className="auth-field">
-            <label htmlFor="reg-username" className="auth-label">Username</label>
+            <label htmlFor="reg-username" className="auth-label">
+              Username
+            </label>
             <input
               id="reg-username"
               type="text"
@@ -81,7 +85,9 @@ export default function RegisterPage({
           </div>
 
           <div className="auth-field">
-            <label htmlFor="reg-password" className="auth-label">Password</label>
+            <label htmlFor="reg-password" className="auth-label">
+              Password
+            </label>
             <input
               id="reg-password"
               type="password"
@@ -94,7 +100,9 @@ export default function RegisterPage({
           </div>
 
           <div className="auth-field">
-            <label htmlFor="reg-confirm" className="auth-label">Konfirmasi Password</label>
+            <label htmlFor="reg-confirm" className="auth-label">
+              Konfirmasi Password
+            </label>
             <input
               id="reg-confirm"
               type="password"

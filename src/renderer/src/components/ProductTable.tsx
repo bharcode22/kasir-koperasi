@@ -4,6 +4,7 @@ interface Product {
   id: number
   name: string
   price: number
+  purchasePrice: number
   stock: number
   type: string
 }
@@ -31,8 +32,7 @@ export default function ProductTable({
   const filtered = useMemo(() => {
     return products.filter((p) => {
       const matchQuery = p.name.toLowerCase().includes(query.toLowerCase())
-      const matchType =
-        activeType === 'Semua' || (p.type?.trim() || 'Umum') === activeType
+      const matchType = activeType === 'Semua' || (p.type?.trim() || 'Umum') === activeType
       return matchQuery && matchType
     })
   }, [products, query, activeType])
@@ -67,9 +67,7 @@ export default function ProductTable({
 
       <div className="table-scroll-container">
         {filtered.length === 0 ? (
-          <div
-            style={{ textAlign: 'center', padding: '40px', color: '#6b7280', fontSize: '14px' }}
-          >
+          <div style={{ textAlign: 'center', padding: '40px', color: '#6b7280', fontSize: '14px' }}>
             Belum ada data barang.
           </div>
         ) : (
@@ -80,7 +78,8 @@ export default function ProductTable({
                 <th style={{ textAlign: 'center', width: '60px' }}>ID</th>
                 <th>Nama Barang</th>
                 <th>Tipe</th>
-                <th style={{ textAlign: 'left' }}>Harga</th>
+                <th style={{ textAlign: 'left' }}>Harga Beli</th>
+                <th style={{ textAlign: 'left' }}>Harga Jual</th>
                 <th style={{ textAlign: 'center' }}>Stok</th>
                 <th style={{ textAlign: 'center' }}>Aksi</th>
               </tr>
@@ -97,6 +96,9 @@ export default function ProductTable({
                   <td>{p.name}</td>
                   <td>
                     <span style={{ opacity: 0.8, fontSize: '12px' }}>{p.type || '-'}</span>
+                  </td>
+                  <td style={{ textAlign: 'left' }}>
+                    Rp{(p.purchasePrice ?? 0).toLocaleString('id-ID')}
                   </td>
                   <td style={{ textAlign: 'left', fontWeight: 600 }}>
                     Rp{p.price.toLocaleString('id-ID')}

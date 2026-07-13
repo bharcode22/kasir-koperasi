@@ -8,11 +8,13 @@ import TransactionManager from './components/TransactionManager'
 import CartPanel from './components/CartPanel'
 import LoginPage from './components/LoginPage'
 import RegisterPage from './components/RegisterPage'
+import SalesReport from './components/SalesReport'
 
 interface Product {
   id: number
   name: string
   price: number
+  purchasePrice: number
   stock: number
   type: string
 }
@@ -53,9 +55,9 @@ interface CurrentUser {
 }
 
 function App(): React.JSX.Element {
-  const [activeTab, setActiveTab] = useState<'catalogue' | 'manage' | 'types' | 'transactions'>(
-    'catalogue'
-  )
+  const [activeTab, setActiveTab] = useState<
+    'catalogue' | 'manage' | 'types' | 'transactions' | 'reports'
+  >('catalogue')
   const [products, setProducts] = useState<Product[]>([])
   const [productTypes, setProductTypes] = useState<ProductType[]>([])
   const [transactions, setTransactions] = useState<Transaction[]>([])
@@ -80,6 +82,7 @@ function App(): React.JSX.Element {
   const [formData, setFormData] = useState({
     name: '',
     price: '',
+    purchasePrice: '',
     stock: '',
     type: ''
   })
@@ -160,6 +163,7 @@ function App(): React.JSX.Element {
           id: editingProduct.id,
           name: formData.name,
           price: parseFloat(formData.price),
+          purchasePrice: parseFloat(formData.purchasePrice || '0'),
           stock: parseInt(formData.stock || '0', 10),
           type: formData.type
         })
@@ -170,12 +174,13 @@ function App(): React.JSX.Element {
         await window.api.createProduct({
           name: formData.name,
           price: parseFloat(formData.price),
+          purchasePrice: parseFloat(formData.purchasePrice || '0'),
           stock: parseInt(formData.stock || '0', 10),
           type: formData.type
         })
         showToast('Produk berhasil ditambahkan!')
       }
-      setFormData({ name: '', price: '', stock: '', type: '' })
+      setFormData({ name: '', price: '', purchasePrice: '', stock: '', type: '' })
       fetchProducts()
     } catch (err) {
       console.error(err)
@@ -189,6 +194,7 @@ function App(): React.JSX.Element {
     setFormData({
       name: product.name,
       price: product.price.toString(),
+      purchasePrice: (product.purchasePrice ?? 0).toString(),
       stock: product.stock.toString(),
       type: product.type
     })
@@ -197,7 +203,7 @@ function App(): React.JSX.Element {
   // Batalkan pengeditan produk
   const cancelEdit = (): void => {
     setEditingProduct(null)
-    setFormData({ name: '', price: '', stock: '', type: '' })
+    setFormData({ name: '', price: '', purchasePrice: '', stock: '', type: '' })
   }
 
   // Hapus produk
@@ -365,12 +371,7 @@ function App(): React.JSX.Element {
         />
       )
     }
-    return (
-      <LoginPage
-        onLogin={handleLogin}
-        onGoRegister={(): void => setAuthPage('register')}
-      />
-    )
+    return <LoginPage onLogin={handleLogin} onGoRegister={(): void => setAuthPage('register')} />
   }
 
   return (
@@ -408,6 +409,17 @@ function App(): React.JSX.Element {
                 }}
               >
                 Riwayat Transaksi
+              </button>
+              <button
+                id="tab-reports"
+                className={`tab-btn ${activeTab === 'reports' ? 'active' : ''}`}
+                onClick={(): void => {
+                  setActiveTab('reports')
+                  cancelEdit()
+                  fetchTransactions()
+                }}
+              >
+                Laporan Penjualan
               </button>
               <button
                 id="tab-manage"
@@ -465,6 +477,8 @@ function App(): React.JSX.Element {
               onUpdateType={handleUpdateProductType}
               onDeleteType={handleDeleteProductType}
             />
+          ) : activeTab === 'reports' ? (
+            <SalesReport transactions={transactions} />
           ) : (
             <TransactionManager
               transactions={transactions}

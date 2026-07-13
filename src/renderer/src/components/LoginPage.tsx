@@ -42,7 +42,9 @@ export default function LoginPage({ onLogin, onGoRegister }: LoginPageProps): Re
           {error && <div className="auth-error">{error}</div>}
 
           <div className="auth-field">
-            <label htmlFor="login-username" className="auth-label">Username</label>
+            <label htmlFor="login-username" className="auth-label">
+              Username
+            </label>
             <input
               id="login-username"
               type="text"
@@ -55,7 +57,9 @@ export default function LoginPage({ onLogin, onGoRegister }: LoginPageProps): Re
           </div>
 
           <div className="auth-field">
-            <label htmlFor="login-password" className="auth-label">Password</label>
+            <label htmlFor="login-password" className="auth-label">
+              Password
+            </label>
             <input
               id="login-password"
               type="password"

@@ -16,12 +16,16 @@ export function registerIpcHandlers(): void {
   // IPC handler untuk menambahkan produk baru
   ipcMain.handle(
     'create-product',
-    async (_, data: { name: string; price: number; stock: number; type: string }) => {
+    async (
+      _,
+      data: { name: string; price: number; purchasePrice: number; stock: number; type: string }
+    ) => {
       const prisma = getPrisma()
       return await prisma.product.create({
         data: {
           name: data.name,
           price: data.price,
+          purchasePrice: data.purchasePrice,
           stock: data.stock,
           type: data.type
         }
@@ -29,13 +33,19 @@ export function registerIpcHandlers(): void {
     }
   )
 
-
   // IPC handler untuk memperbarui produk
   ipcMain.handle(
     'update-product',
     async (
       _,
-      data: { id: number; name: string; price: number; stock: number; type: string }
+      data: {
+        id: number
+        name: string
+        price: number
+        purchasePrice: number
+        stock: number
+        type: string
+      }
     ) => {
       const prisma = getPrisma()
       return await prisma.product.update({
@@ -43,6 +53,7 @@ export function registerIpcHandlers(): void {
         data: {
           name: data.name,
           price: data.price,
+          purchasePrice: data.purchasePrice,
           stock: data.stock,
           type: data.type
         }
@@ -101,47 +112,52 @@ export function registerIpcHandlers(): void {
       where: { id }
     })
   })
-// IPC handler untuk memproses transaksi kasir (menyimpan transaksi + potong stok)
-ipcMain.handle(
-  'create-transaction',
-  async (_, data: { seller: string; buyer: string; items: { productId: number; quantity: number; price: number }[] }) => {
-    const prisma = getPrisma()
-    // Calculate total quantity and total price from items
-    const totalQty = data.items.reduce((sum, item) => sum + item.quantity, 0)
-    const totalPrice = data.items.reduce((sum, item) => sum + item.price * item.quantity, 0)
-    return await prisma.$transaction(async (tx) => {
-      // 1. Simpan Transaksi Utama dengan qty dan total price beserta seller & buyer
-      const transaction = await tx.transaction.create({
-        data: {
-          total: totalPrice,
-          qty: totalQty,
-          price: totalPrice,
-          seller: data.seller,
-          buyer: data.buyer,
-          items: {
-            create: data.items.map((item) => ({
-              productId: item.productId,
-              quantity: item.quantity,
-              price: item.price
-            }))
-          }
-        }
-      })
-
-      // 2. Kurangi stok produk untuk setiap item yang dibeli
-      for (const item of data.items) {
-        await tx.product.update({
-          where: { id: item.productId },
-          data: { stock: { decrement: item.quantity } }
-        })
+  // IPC handler untuk memproses transaksi kasir (menyimpan transaksi + potong stok)
+  ipcMain.handle(
+    'create-transaction',
+    async (
+      _,
+      data: {
+        seller: string
+        buyer: string
+        items: { productId: number; quantity: number; price: number }[]
       }
+    ) => {
+      const prisma = getPrisma()
+      // Calculate total quantity and total price from items
+      const totalQty = data.items.reduce((sum, item) => sum + item.quantity, 0)
+      const totalPrice = data.items.reduce((sum, item) => sum + item.price * item.quantity, 0)
+      return await prisma.$transaction(async (tx) => {
+        // 1. Simpan Transaksi Utama dengan qty dan total price beserta seller & buyer
+        const transaction = await tx.transaction.create({
+          data: {
+            total: totalPrice,
+            qty: totalQty,
+            price: totalPrice,
+            seller: data.seller,
+            buyer: data.buyer,
+            items: {
+              create: data.items.map((item) => ({
+                productId: item.productId,
+                quantity: item.quantity,
+                price: item.price
+              }))
+            }
+          }
+        })
 
-      return transaction
-    })
-  }
-);
+        // 2. Kurangi stok produk untuk setiap item yang dibeli
+        for (const item of data.items) {
+          await tx.product.update({
+            where: { id: item.productId },
+            data: { stock: { decrement: item.quantity } }
+          })
+        }
 
-
+        return transaction
+      })
+    }
+  )
 
   ipcMain.handle('get-transactions', async () => {
     const prisma = getPrisma()
@@ -191,19 +207,22 @@ ipcMain.handle(
   })
 
   // IPC handler untuk register user baru
-  ipcMain.handle('register', async (_, data: { username: string; name: string; password: string }) => {
-    const prisma = getPrisma()
-    // Cek apakah username sudah dipakai
-    const existing = await prisma.users.findFirst({ where: { username: data.username } })
-    if (existing) {
-      throw new Error('Username sudah digunakan')
+  ipcMain.handle(
+    'register',
+    async (_, data: { username: string; name: string; password: string }) => {
+      const prisma = getPrisma()
+      // Cek apakah username sudah dipakai
+      const existing = await prisma.users.findFirst({ where: { username: data.username } })
+      if (existing) {
+        throw new Error('Username sudah digunakan')
+      }
+      const hashed = await bcrypt.hash(data.password, 10)
+      const user = await prisma.users.create({
+        data: { username: data.username, name: data.name, password: hashed }
+      })
+      return { id: user.id, username: user.username, name: user.name }
     }
-    const hashed = await bcrypt.hash(data.password, 10)
-    const user = await prisma.users.create({
-      data: { username: data.username, name: data.name, password: hashed }
-    })
-    return { id: user.id, username: user.username, name: user.name }
-  })
+  )
 
   // IPC handler untuk login
   ipcMain.handle('login', async (_, data: { username: string; password: string }) => {
@@ -236,14 +255,25 @@ ipcMain.handle(
     transactions.forEach((t) => {
       if (t.items && Array.isArray(t.items)) {
         t.items.forEach((item) => {
+          const purchasePrice = item.product?.purchasePrice ?? 0
+          const sellPrice = item.price
+          const quantity = item.quantity
+          const totalCost = purchasePrice * quantity
+          const totalSales = sellPrice * quantity
+          const profit = totalSales - totalCost
+
           rows.push({
             'ID Transaksi': t.id,
-            'Tanggal': new Date(t.createdAt).toLocaleString('id-ID'),
+            Tanggal: new Date(t.createdAt).toLocaleString('id-ID'),
             'Penjual (Kasir)': t.seller || 'Umum',
-            'Pembeli': t.buyer || 'Umum',
-            'Barang': item.product?.name || 'Barang Dihapus',
-            'Qty': item.quantity,
-            'Harga Satuan': item.price
+            Pembeli: t.buyer || 'Umum',
+            Barang: item.product?.name || 'Barang Dihapus',
+            Qty: quantity,
+            'Harga Beli Satuan': purchasePrice,
+            'Harga Jual Satuan': sellPrice,
+            'Total Harga Beli': totalCost,
+            'Total Harga Jual': totalSales,
+            'Laba Bersih': profit
           })
         })
       }
@@ -253,6 +283,43 @@ ipcMain.handle(
       const wb = XLSX.utils.book_new()
       const ws = XLSX.utils.json_to_sheet(rows)
       XLSX.utils.book_append_sheet(wb, ws, 'Laporan Transaksi')
+
+      XLSX.writeFile(wb, filePath)
+      return { success: true, filePath }
+    } catch (err: any) {
+      console.error('Gagal menulis file excel:', err)
+      return { success: false, message: err.message || 'Gagal menyimpan file' }
+    }
+  })
+
+  // IPC handler untuk ekspor laporan penjualan barang ke excel
+  ipcMain.handle('export-sales-report', async (_, reportData: any[]) => {
+    const { filePath } = await dialog.showSaveDialog({
+      title: 'Simpan Laporan Penjualan Barang',
+      defaultPath: 'laporan-penjualan-barang.xlsx',
+      filters: [{ name: 'Excel Files', extensions: ['xlsx'] }]
+    })
+
+    if (!filePath) {
+      return { success: false, message: 'Ekspor dibatalkan' }
+    }
+
+    const rows = reportData.map((item, index) => ({
+      No: index + 1,
+      'Nama Barang': item.name,
+      Tipe: item.type,
+      'Jumlah Terjual (Qty)': item.quantitySold,
+      'Harga Beli Rata-Rata': Math.round(item.avgPurchasePrice),
+      'Harga Jual Rata-Rata': Math.round(item.avgSellPrice),
+      'Total Modal (Beli)': item.totalCost,
+      'Total Omset (Jual)': item.totalRevenue,
+      'Laba Bersih': item.profit
+    }))
+
+    try {
+      const wb = XLSX.utils.book_new()
+      const ws = XLSX.utils.json_to_sheet(rows)
+      XLSX.utils.book_append_sheet(wb, ws, 'Laporan Penjualan')
 
       XLSX.writeFile(wb, filePath)
       return { success: true, filePath }
@@ -299,13 +366,18 @@ ipcMain.handle(
 
 // Helper untuk menghasilkan HTML nota belanja/struk thermal
 function generateReceiptHtml(t: any): string {
-  const itemsHtml = (t.items || []).map((item: any) => `
+  const itemsHtml = (t.items || [])
+    .map(
+      (item: any) => `
     <tr>
       <td>${item.product?.name || 'Barang Dihapus'}</td>
       <td style="text-align: center;">${item.quantity}</td>
+      <td style="text-align: right;">Rp${(item.product?.purchasePrice ?? 0).toLocaleString('id-ID')}</td>
       <td style="text-align: right;">Rp${item.price.toLocaleString('id-ID')}</td>
     </tr>
-  `).join('')
+  `
+    )
+    .join('')
 
   const dateStr = new Date(t.createdAt).toLocaleString('id-ID', {
     year: 'numeric',
@@ -373,8 +445,9 @@ function generateReceiptHtml(t: any): string {
         <thead>
           <tr>
             <th>Barang</th>
-            <th style="text-align: center; width: 35px;">Qty</th>
-            <th style="text-align: right; width: 75px;">Harga</th>
+            <th style="text-align: center; width: 30px;">Qty</th>
+            <th style="text-align: right; width: 65px;">H.Beli</th>
+            <th style="text-align: right; width: 65px;">Harga</th>
           </tr>
         </thead>
         <tbody>
@@ -409,7 +482,11 @@ function generateReceiptHtml(t: any): string {
 }
 
 // Helper untuk mencetak konten HTML ke PDF atau printer fisik menggunakan window tersembunyi
-async function printHtml(htmlContent: string, mode: 'pdf' | 'printer', filePath?: string): Promise<any> {
+async function printHtml(
+  htmlContent: string,
+  mode: 'pdf' | 'printer',
+  filePath?: string
+): Promise<any> {
   return new Promise((resolve, reject) => {
     const tempWindow = new BrowserWindow({
       show: false,
@@ -437,17 +514,20 @@ async function printHtml(htmlContent: string, mode: 'pdf' | 'printer', filePath?
           tempWindow.destroy()
           resolve({ success: true })
         } else {
-          tempWindow.webContents.print({
-            silent: false,
-            printBackground: true
-          }, (success, errorType) => {
-            tempWindow.destroy()
-            if (success) {
-              resolve({ success: true })
-            } else {
-              reject(new Error(errorType || 'Pencetakan dibatalkan'))
+          tempWindow.webContents.print(
+            {
+              silent: false,
+              printBackground: true
+            },
+            (success, errorType) => {
+              tempWindow.destroy()
+              if (success) {
+                resolve({ success: true })
+              } else {
+                reject(new Error(errorType || 'Pencetakan dibatalkan'))
+              }
             }
-          })
+          )
         }
       } catch (err) {
         tempWindow.destroy()

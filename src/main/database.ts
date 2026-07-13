@@ -24,7 +24,8 @@ export function initializeDatabase(): PrismaClient {
     } else {
       try {
         const stats = statSync(dbPath)
-        if (stats.size < 20000) { // Template dev.db asli berukuran ~40KB
+        if (stats.size < 20000) {
+          // Template dev.db asli berukuran ~40KB
           shouldCopy = true
         }
       } catch (err) {

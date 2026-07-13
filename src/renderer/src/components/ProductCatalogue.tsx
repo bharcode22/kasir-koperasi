@@ -4,6 +4,7 @@ interface Product {
   id: number
   name: string
   price: number
+  purchasePrice: number
   stock: number
   type: string
 }
@@ -23,7 +24,11 @@ export default function ProductCatalogue({
 }: ProductCatalogueProps): React.JSX.Element {
   const filtered = useMemo(() => {
     const q = searchQuery.toLowerCase()
-    return q ? products.filter((p) => p.name.toLowerCase().includes(q) || (p.type || '').toLowerCase().includes(q)) : products
+    return q
+      ? products.filter(
+          (p) => p.name.toLowerCase().includes(q) || (p.type || '').toLowerCase().includes(q)
+        )
+      : products
   }, [products, searchQuery])
 
   // Group products by type

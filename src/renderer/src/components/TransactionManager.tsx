@@ -1,9 +1,10 @@
-import React, { useState } from 'react'
+import React, { useState, useMemo } from 'react'
 
 interface Product {
   id: number
   name: string
   price: number
+  purchasePrice?: number
   stock: number
   type: string
 }
@@ -130,6 +131,30 @@ export default function TransactionManager({
     return matchSearch && matchStart && matchEnd
   })
 
+  const summary = useMemo(() => {
+    let totalSales = 0
+    let totalCost = 0
+
+    for (const tx of filtered) {
+      totalSales += tx.total
+      if (tx.items) {
+        for (const item of tx.items) {
+          const buyPrice = item.product?.purchasePrice ?? 0
+          totalCost += buyPrice * item.quantity
+        }
+      }
+    }
+
+    const totalProfit = totalSales - totalCost
+
+    return {
+      totalSales,
+      totalCost,
+      totalProfit,
+      count: filtered.length
+    }
+  }, [filtered])
+
   const formatDate = (dateStr: string): string => {
     const d = new Date(dateStr)
     return d.toLocaleString('id-ID', {
@@ -201,6 +226,128 @@ export default function TransactionManager({
           </button>
         </div>
 
+        {/* Dashboard Ringkasan Transaksi */}
+        {filtered.length > 0 && (
+          <div
+            className="transaction-summary-dashboard"
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))',
+              gap: '12px',
+              marginBottom: '16px',
+              marginTop: '12px'
+            }}
+          >
+            <div
+              className="summary-card"
+              style={{
+                background: 'rgba(255, 255, 255, 0.03)',
+                border: '1px solid var(--glass-border)',
+                padding: '12px',
+                borderRadius: '8px'
+              }}
+            >
+              <div
+                style={{
+                  fontSize: '10px',
+                  color: '#9ca3af',
+                  textTransform: 'uppercase',
+                  fontWeight: 600,
+                  letterSpacing: '0.05em'
+                }}
+              >
+                Transaksi
+              </div>
+              <div style={{ fontSize: '16px', fontWeight: 700, marginTop: '4px', color: '#fff' }}>
+                {summary.count}
+              </div>
+            </div>
+            <div
+              className="summary-card"
+              style={{
+                background: 'rgba(255, 255, 255, 0.03)',
+                border: '1px solid var(--glass-border)',
+                padding: '12px',
+                borderRadius: '8px'
+              }}
+            >
+              <div
+                style={{
+                  fontSize: '10px',
+                  color: '#9ca3af',
+                  textTransform: 'uppercase',
+                  fontWeight: 600,
+                  letterSpacing: '0.05em'
+                }}
+              >
+                Total Penjualan
+              </div>
+              <div
+                style={{ fontSize: '16px', fontWeight: 700, marginTop: '4px', color: '#818cf8' }}
+              >
+                Rp{summary.totalSales.toLocaleString('id-ID')}
+              </div>
+            </div>
+            <div
+              className="summary-card"
+              style={{
+                background: 'rgba(255, 255, 255, 0.03)',
+                border: '1px solid var(--glass-border)',
+                padding: '12px',
+                borderRadius: '8px'
+              }}
+            >
+              <div
+                style={{
+                  fontSize: '10px',
+                  color: '#9ca3af',
+                  textTransform: 'uppercase',
+                  fontWeight: 600,
+                  letterSpacing: '0.05em'
+                }}
+              >
+                Total Modal
+              </div>
+              <div
+                style={{ fontSize: '16px', fontWeight: 700, marginTop: '4px', color: '#fb923c' }}
+              >
+                Rp{summary.totalCost.toLocaleString('id-ID')}
+              </div>
+            </div>
+            <div
+              className="summary-card"
+              style={{
+                background: 'rgba(255, 255, 255, 0.03)',
+                border: '1px solid var(--glass-border)',
+                padding: '12px',
+                borderRadius: '8px'
+              }}
+            >
+              <div
+                style={{
+                  fontSize: '10px',
+                  color: '#9ca3af',
+                  textTransform: 'uppercase',
+                  fontWeight: 600,
+                  letterSpacing: '0.05em'
+                }}
+              >
+                Laba Bersih
+              </div>
+              <div
+                style={{
+                  fontSize: '16px',
+                  fontWeight: 700,
+                  marginTop: '4px',
+                  color: summary.totalProfit >= 0 ? '#34d399' : '#f87171'
+                }}
+              >
+                Rp{summary.totalProfit.toLocaleString('id-ID')}
+              </div>
+            </div>
+          </div>
+        )}
+
         <div className="table-scroll-container">
           {filtered.length === 0 ? (
             <div
@@ -248,10 +395,7 @@ export default function TransactionManager({
                     <td style={{ textAlign: 'right', fontWeight: 600 }}>
                       Rp{t.total.toLocaleString('id-ID')}
                     </td>
-                    <td
-                      style={{ textAlign: 'center' }}
-                      onClick={(e): void => e.stopPropagation()}
-                    >
+                    <td style={{ textAlign: 'center' }} onClick={(e): void => e.stopPropagation()}>
                       <div className="table-actions">
                         <button
                           className="action-btn-edit"
@@ -356,7 +500,8 @@ export default function TransactionManager({
                   <tr>
                     <th>Barang</th>
                     <th style={{ textAlign: 'center' }}>Qty</th>
-                    <th style={{ textAlign: 'right' }}>Harga Satuan</th>
+                    <th style={{ textAlign: 'right' }}>Harga Beli</th>
+                    <th style={{ textAlign: 'right' }}>Harga Jual</th>
                     <th style={{ textAlign: 'right' }}>Total</th>
                   </tr>
                 </thead>
@@ -370,6 +515,9 @@ export default function TransactionManager({
                         )}
                       </td>
                       <td style={{ textAlign: 'center' }}>{item.quantity}</td>
+                      <td style={{ textAlign: 'right' }}>
+                        Rp{(item.product?.purchasePrice ?? 0).toLocaleString('id-ID')}
+                      </td>
                       <td style={{ textAlign: 'right' }}>Rp{item.price.toLocaleString('id-ID')}</td>
                       <td style={{ textAlign: 'right', fontWeight: 600 }}>
                         Rp{(item.price * item.quantity).toLocaleString('id-ID')}

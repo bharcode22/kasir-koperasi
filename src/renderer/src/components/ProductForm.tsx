@@ -3,6 +3,7 @@ import React from 'react'
 interface FormData {
   name: string
   price: string
+  purchasePrice: string
   stock: string
   type: string
 }
@@ -64,7 +65,20 @@ export default function ProductForm({
           style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}
         >
           <div className="form-group">
-            <label htmlFor="prod-price">Harga Satuan</label>
+            <label htmlFor="prod-purchase-price">Harga Beli</label>
+            <input
+              id="prod-purchase-price"
+              type="number"
+              min="0"
+              className="form-control"
+              placeholder="Contoh: 12000"
+              value={formData.purchasePrice}
+              onChange={(e): void => onFormChange({ ...formData, purchasePrice: e.target.value })}
+              required
+            />
+          </div>
+          <div className="form-group">
+            <label htmlFor="prod-price">Harga Jual</label>
             <input
               id="prod-price"
               type="number"
@@ -76,26 +90,21 @@ export default function ProductForm({
               required
             />
           </div>
-          <div className="form-group">
-            <label htmlFor="prod-stock">Stok Awal</label>
-            <input
-              id="prod-stock"
-              type="number"
-              min="0"
-              className="form-control"
-              placeholder="Contoh: 50"
-              value={formData.stock}
-              onChange={(e): void => onFormChange({ ...formData, stock: e.target.value })}
-            />
-          </div>
+        </div>
+        <div className="form-group">
+          <label htmlFor="prod-stock">{isEditing ? 'Stok' : 'Stok Awal'}</label>
+          <input
+            id="prod-stock"
+            type="number"
+            min="0"
+            className="form-control"
+            placeholder="Contoh: 50"
+            value={formData.stock}
+            onChange={(e): void => onFormChange({ ...formData, stock: e.target.value })}
+          />
         </div>
         <div style={{ display: 'flex', gap: '12px' }}>
-          <button
-            type="submit"
-            id="btn-submit-product"
-            className="submit-btn"
-            style={{ flex: 1 }}
-          >
+          <button type="submit" id="btn-submit-product" className="submit-btn" style={{ flex: 1 }}>
             {isEditing ? 'Update Barang' : 'Simpan Barang'}
           </button>
           {isEditing && (
