@@ -174,7 +174,7 @@ export default function TransactionManager({
       <div className="product-table-wrapper">
         <div className="table-header-row">
           <h4 style={{ fontFamily: 'var(--font-title)', fontWeight: 700 }}>
-            Riwayat Transaksi ({transactions.length})
+            Riwayat Transaksi
           </h4>
           <input
             type="text"

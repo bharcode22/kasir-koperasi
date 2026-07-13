@@ -158,7 +158,7 @@ export default function SalesReport({ transactions }: SalesReportProps): React.J
     <div className="product-table-wrapper" style={{ width: '100%' }}>
       <div className="table-header-row">
         <h3 style={{ fontFamily: 'var(--font-title)', fontWeight: 700, margin: 0 }}>
-          Laporan Penjualan per Barang
+          Buku Kecil
         </h3>
         <input
           type="text"
