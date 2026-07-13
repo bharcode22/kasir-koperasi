@@ -25,6 +25,8 @@ interface Transaction {
   price: number
   seller: string
   buyer: string
+  cashReceived: number
+  change: number
   items: TransactionItem[]
 }
 
@@ -332,7 +334,7 @@ export default function TransactionManager({
                   letterSpacing: '0.05em'
                 }}
               >
-                Laba Bersih
+                Laba Bersih Kotor
               </div>
               <div
                 style={{
@@ -426,7 +428,7 @@ export default function TransactionManager({
       {/* Sisi Kanan: Panel Detail Struk Nota */}
       <div className="manage-form detail-transaction-panel">
         <h3 style={{ fontFamily: 'var(--font-title)', fontWeight: 700, marginBottom: '16px' }}>
-          Detail Nota Belanja
+          Detail Nota Penjualan
         </h3>
 
         {!selectedTx ? (
@@ -464,7 +466,7 @@ export default function TransactionManager({
 
             <div className="receipt-container">
               <div className="receipt-header">
-                <div className="receipt-title">NOTA BELANJA</div>
+                <div className="receipt-title">NOTA PENJUALAN</div>
                 <div className="receipt-meta">
                   <table className="receipt-meta-table">
                     <tbody>
@@ -500,7 +502,6 @@ export default function TransactionManager({
                   <tr>
                     <th>Barang</th>
                     <th style={{ textAlign: 'center' }}>Qty</th>
-                    <th style={{ textAlign: 'right' }}>Harga Beli</th>
                     <th style={{ textAlign: 'right' }}>Harga Jual</th>
                     <th style={{ textAlign: 'right' }}>Total</th>
                   </tr>
@@ -515,9 +516,6 @@ export default function TransactionManager({
                         )}
                       </td>
                       <td style={{ textAlign: 'center' }}>{item.quantity}</td>
-                      <td style={{ textAlign: 'right' }}>
-                        Rp{(item.product?.purchasePrice ?? 0).toLocaleString('id-ID')}
-                      </td>
                       <td style={{ textAlign: 'right' }}>Rp{item.price.toLocaleString('id-ID')}</td>
                       <td style={{ textAlign: 'right', fontWeight: 600 }}>
                         Rp{(item.price * item.quantity).toLocaleString('id-ID')}
@@ -542,6 +540,18 @@ export default function TransactionManager({
                   <span>TOTAL AKHIR</span>
                   <span>Rp{selectedTx.total.toLocaleString('id-ID')}</span>
                 </div>
+                {selectedTx.cashReceived > 0 && (
+                  <>
+                    <div className="receipt-summary-row" style={{ marginTop: '4px' }}>
+                      <span>Uang diterima</span>
+                      <span>Rp{selectedTx.cashReceived.toLocaleString('id-ID')}</span>
+                    </div>
+                    <div className="receipt-summary-row">
+                      <span>Kembalian</span>
+                      <span>Rp{selectedTx.change.toLocaleString('id-ID')}</span>
+                    </div>
+                  </>
+                )}
               </div>
 
               <div className="receipt-footer">Terima Kasih Atas Kunjungan Anda</div>

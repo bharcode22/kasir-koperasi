@@ -22,14 +22,16 @@ model Product {
 }
 
 model Transaction {
-  id        Int               @id @default(autoincrement())
-  createdAt DateTime          @default(now())
-  total     Float
-  qty       Int               @default(0)
-  price     Float             @default(0)
-  seller    String            @default("")
-  buyer     String            @default("")
-  items     TransactionItem[]
+  id           Int               @id @default(autoincrement())
+  createdAt    DateTime          @default(now())
+  total        Float
+  qty          Int               @default(0)
+  price        Float             @default(0)
+  seller       String            @default("")
+  buyer        String            @default("")
+  cashReceived Float             @default(0)
+  change       Float             @default(0)
+  items        TransactionItem[]
 }
 
 model TransactionItem {

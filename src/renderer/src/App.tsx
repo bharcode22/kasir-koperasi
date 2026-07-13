@@ -40,6 +40,8 @@ interface Transaction {
   price: number
   seller: string
   buyer: string
+  cashReceived: number
+  change: number
   items: TransactionItem[]
 }
 
@@ -325,7 +327,11 @@ function App(): React.JSX.Element {
   }
 
   // Checkout
-  const handleCheckout = async (buyerName: string): Promise<void> => {
+  const handleCheckout = async (
+    buyerName: string,
+    cashReceived: number,
+    change: number
+  ): Promise<void> => {
     if (cart.length === 0) return
 
     const items = cart.map((item) => ({
@@ -341,6 +347,8 @@ function App(): React.JSX.Element {
       await window.api.createTransaction({
         seller: sellerName,
         buyer: finalBuyerName,
+        cashReceived,
+        change,
         items
       })
       showToast('Transaksi Berhasil! Stok diperbarui.')

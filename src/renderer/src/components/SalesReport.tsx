@@ -242,7 +242,7 @@ export default function SalesReport({ transactions }: SalesReportProps): React.J
                 letterSpacing: '0.05em'
               }}
             >
-              Barang Terjual
+              Total Barang Terjual
             </div>
             <div style={{ fontSize: '16px', fontWeight: 700, marginTop: '4px', color: '#fff' }}>
               {summary.qty} pcs
@@ -266,7 +266,7 @@ export default function SalesReport({ transactions }: SalesReportProps): React.J
                 letterSpacing: '0.05em'
               }}
             >
-              Total Omset Jual
+              Total Jual
             </div>
             <div style={{ fontSize: '16px', fontWeight: 700, marginTop: '4px', color: '#818cf8' }}>
               Rp{summary.revenue.toLocaleString('id-ID')}
@@ -290,7 +290,7 @@ export default function SalesReport({ transactions }: SalesReportProps): React.J
                 letterSpacing: '0.05em'
               }}
             >
-              Total Modal Beli
+              Total Beli
             </div>
             <div style={{ fontSize: '16px', fontWeight: 700, marginTop: '4px', color: '#fb923c' }}>
               Rp{summary.cost.toLocaleString('id-ID')}
@@ -314,7 +314,7 @@ export default function SalesReport({ transactions }: SalesReportProps): React.J
                 letterSpacing: '0.05em'
               }}
             >
-              Total Laba Bersih
+              Total Laba Kotor
             </div>
             <div
               style={{

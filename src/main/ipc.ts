@@ -120,6 +120,8 @@ export function registerIpcHandlers(): void {
       data: {
         seller: string
         buyer: string
+        cashReceived?: number
+        change?: number
         items: { productId: number; quantity: number; price: number }[]
       }
     ) => {
@@ -136,6 +138,8 @@ export function registerIpcHandlers(): void {
             price: totalPrice,
             seller: data.seller,
             buyer: data.buyer,
+            cashReceived: data.cashReceived ?? 0,
+            change: data.change ?? 0,
             items: {
               create: data.items.map((item) => ({
                 productId: item.productId,
@@ -252,6 +256,11 @@ export function registerIpcHandlers(): void {
 
     // Format Detail Item Transaksi lengkap
     const rows: any[] = []
+    let totalQty = 0
+    let totalCostSum = 0
+    let totalSalesSum = 0
+    let totalProfitSum = 0
+
     transactions.forEach((t) => {
       if (t.items && Array.isArray(t.items)) {
         t.items.forEach((item) => {
@@ -261,6 +270,11 @@ export function registerIpcHandlers(): void {
           const totalCost = purchasePrice * quantity
           const totalSales = sellPrice * quantity
           const profit = totalSales - totalCost
+
+          totalQty += quantity
+          totalCostSum += totalCost
+          totalSalesSum += totalSales
+          totalProfitSum += profit
 
           rows.push({
             'ID Transaksi': t.id,
@@ -278,6 +292,37 @@ export function registerIpcHandlers(): void {
         })
       }
     })
+
+    if (rows.length > 0) {
+      // Spacing row
+      rows.push({
+        'ID Transaksi': '',
+        Tanggal: '',
+        'Penjual (Kasir)': '',
+        Pembeli: '',
+        Barang: '',
+        Qty: '',
+        'Harga Beli Satuan': '',
+        'Harga Jual Satuan': '',
+        'Total Harga Beli': '',
+        'Total Harga Jual': '',
+        'Laba Bersih': ''
+      })
+      // Total row
+      rows.push({
+        'ID Transaksi': 'TOTAL',
+        Tanggal: '',
+        'Penjual (Kasir)': '',
+        Pembeli: '',
+        Barang: '',
+        Qty: totalQty,
+        'Harga Beli Satuan': '',
+        'Harga Jual Satuan': '',
+        'Total Harga Beli': totalCostSum,
+        'Total Harga Jual': totalSalesSum,
+        'Laba Bersih': totalProfitSum
+      })
+    }
 
     try {
       const wb = XLSX.utils.book_new()
@@ -304,7 +349,7 @@ export function registerIpcHandlers(): void {
       return { success: false, message: 'Ekspor dibatalkan' }
     }
 
-    const rows = reportData.map((item, index) => ({
+    const rows: any[] = reportData.map((item, index) => ({
       No: index + 1,
       'Nama Barang': item.name,
       Tipe: item.type,
@@ -315,6 +360,46 @@ export function registerIpcHandlers(): void {
       'Total Omset (Jual)': item.totalRevenue,
       'Laba Bersih': item.profit
     }))
+
+    // Calculate sum totals
+    let totalQty = 0
+    let totalCost = 0
+    let totalRevenue = 0
+    let totalProfit = 0
+
+    for (const item of reportData) {
+      totalQty += item.quantitySold
+      totalCost += item.totalCost
+      totalRevenue += item.totalRevenue
+      totalProfit += item.profit
+    }
+
+    if (rows.length > 0) {
+      // Spacing row
+      rows.push({
+        No: '',
+        'Nama Barang': '',
+        Tipe: '',
+        'Jumlah Terjual (Qty)': '',
+        'Harga Beli Rata-Rata': '',
+        'Harga Jual Rata-Rata': '',
+        'Total Modal (Beli)': '',
+        'Total Omset (Jual)': '',
+        'Laba Bersih': ''
+      })
+      // Total row
+      rows.push({
+        No: 'TOTAL',
+        'Nama Barang': '',
+        Tipe: '',
+        'Jumlah Terjual (Qty)': totalQty,
+        'Harga Beli Rata-Rata': '',
+        'Harga Jual Rata-Rata': '',
+        'Total Modal (Beli)': totalCost,
+        'Total Omset (Jual)': totalRevenue,
+        'Laba Bersih': totalProfit
+      })
+    }
 
     try {
       const wb = XLSX.utils.book_new()
@@ -470,6 +555,20 @@ function generateReceiptHtml(t: any): string {
           <span>TOTAL AKHIR</span>
           <span>Rp${t.total.toLocaleString('id-ID')}</span>
         </div>
+        ${
+          t.cashReceived !== undefined && t.cashReceived > 0
+            ? `
+        <div class="summary-row" style="margin-top: 4px;">
+          <span>Bayar (Cash)</span>
+          <span>Rp${t.cashReceived.toLocaleString('id-ID')}</span>
+        </div>
+        <div class="summary-row">
+          <span>Kembalian</span>
+          <span>Rp${t.change.toLocaleString('id-ID')}</span>
+        </div>
+        `
+            : ''
+        }
       </div>
       
       <div class="footer text-center">

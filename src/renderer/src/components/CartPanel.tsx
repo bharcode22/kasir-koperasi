@@ -16,7 +16,7 @@ interface CartPanelProps {
   cart: CartItem[]
   onUpdateQty: (productId: number, delta: number) => void
   onRemoveFromCart: (productId: number) => void
-  onCheckout: (buyerName: string) => void
+  onCheckout: (buyerName: string, cashReceived: number, change: number) => void
 }
 
 export default function CartPanel({
@@ -215,7 +215,7 @@ export default function CartPanel({
           id="btn-pay"
           className="pay-btn"
           disabled={cart.length === 0 || (cashReceivedVal > 0 && changeVal < 0)}
-          onClick={(): void => onCheckout(buyer.trim())}
+          onClick={(): void => onCheckout(buyer.trim(), cashReceivedVal, changeVal)}
         >
           Proses Pembayaran (Bayar)
         </button>

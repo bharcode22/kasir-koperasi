@@ -15,6 +15,8 @@ declare global {
       createTransaction: (data: {
         seller: string
         buyer: string
+        cashReceived?: number
+        change?: number
         items: { productId: number; quantity: number; price: number }[]
       }) => Promise<any>
       updateProduct: (data: {

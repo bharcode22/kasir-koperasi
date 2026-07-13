@@ -14,6 +14,8 @@ const api = {
   createTransaction: (data: {
     seller: string
     buyer: string
+    cashReceived?: number
+    change?: number
     items: { productId: number; quantity: number; price: number }[]
   }) => ipcRenderer.invoke('create-transaction', data),
   updateProduct: (data: {
