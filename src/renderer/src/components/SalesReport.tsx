@@ -157,9 +157,7 @@ export default function SalesReport({ transactions }: SalesReportProps): React.J
   return (
     <div className="product-table-wrapper" style={{ width: '100%' }}>
       <div className="table-header-row">
-        <h3 style={{ fontFamily: 'var(--font-title)', fontWeight: 700, margin: 0 }}>
-          Buku Kecil
-        </h3>
+        <h3 style={{ fontFamily: 'var(--font-title)', fontWeight: 700, margin: 0 }}>Buku Kecil</h3>
         <input
           type="text"
           placeholder="Cari barang atau tipe..."
@@ -248,30 +246,7 @@ export default function SalesReport({ transactions }: SalesReportProps): React.J
               {summary.qty} pcs
             </div>
           </div>
-          <div
-            className="summary-card"
-            style={{
-              background: 'rgba(255, 255, 255, 0.03)',
-              border: '1px solid var(--glass-border)',
-              padding: '12px',
-              borderRadius: '8px'
-            }}
-          >
-            <div
-              style={{
-                fontSize: '10px',
-                color: '#9ca3af',
-                textTransform: 'uppercase',
-                fontWeight: 600,
-                letterSpacing: '0.05em'
-              }}
-            >
-              Total Jual
-            </div>
-            <div style={{ fontSize: '16px', fontWeight: 700, marginTop: '4px', color: '#818cf8' }}>
-              Rp{summary.revenue.toLocaleString('id-ID')}
-            </div>
-          </div>
+
           <div
             className="summary-card"
             style={{
@@ -296,6 +271,32 @@ export default function SalesReport({ transactions }: SalesReportProps): React.J
               Rp{summary.cost.toLocaleString('id-ID')}
             </div>
           </div>
+
+          <div
+            className="summary-card"
+            style={{
+              background: 'rgba(255, 255, 255, 0.03)',
+              border: '1px solid var(--glass-border)',
+              padding: '12px',
+              borderRadius: '8px'
+            }}
+          >
+            <div
+              style={{
+                fontSize: '10px',
+                color: '#9ca3af',
+                textTransform: 'uppercase',
+                fontWeight: 600,
+                letterSpacing: '0.05em'
+              }}
+            >
+              Total Jual
+            </div>
+            <div style={{ fontSize: '16px', fontWeight: 700, marginTop: '4px', color: '#818cf8' }}>
+              Rp{summary.revenue.toLocaleString('id-ID')}
+            </div>
+          </div>
+
           <div
             className="summary-card"
             style={{

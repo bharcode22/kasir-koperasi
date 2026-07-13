@@ -46,7 +46,89 @@ export function initializeDatabase(): PrismaClient {
 
   // Inisialisasi Prisma Client dengan adapter
   prisma = new PrismaClient({ adapter })
+
+  // Jalankan migrasi mandiri secara asinkron agar kolom baru langsung dibuat jika belum ada
+  runManualMigrations(prisma).catch((err) => {
+    console.error('Gagal menjalankan migrasi otomatis pada dbPath:', dbPath, err)
+  })
+
   return prisma
+}
+
+async function runManualMigrations(client: PrismaClient): Promise<void> {
+  try {
+    // 1. Tambah purchasePrice ke tabel Product jika belum ada
+    try {
+      await client.$executeRawUnsafe(
+        'ALTER TABLE "Product" ADD COLUMN "purchasePrice" REAL DEFAULT 0;'
+      )
+      console.log('Migrasi kolom "purchasePrice" ke Product berhasil.')
+    } catch (err: any) {
+      if (
+        err.message &&
+        (err.message.includes('duplicate column') || err.message.includes('already exists'))
+      ) {
+        // Kolom sudah ada, abaikan
+      } else {
+        console.error('Gagal migrasi kolom purchasePrice:', err.message || err)
+      }
+    }
+
+    // 2. Tambah cashReceived ke tabel Transaction jika belum ada
+    try {
+      await client.$executeRawUnsafe(
+        'ALTER TABLE "Transaction" ADD COLUMN "cashReceived" REAL DEFAULT 0;'
+      )
+      console.log('Migrasi kolom "cashReceived" ke Transaction berhasil.')
+    } catch (err: any) {
+      if (
+        err.message &&
+        (err.message.includes('duplicate column') || err.message.includes('already exists'))
+      ) {
+        // Kolom sudah ada, abaikan
+      } else {
+        console.error('Gagal migrasi kolom cashReceived:', err.message || err)
+      }
+    }
+
+    // 3. Tambah change ke tabel Transaction jika belum ada
+    try {
+      await client.$executeRawUnsafe(
+        'ALTER TABLE "Transaction" ADD COLUMN "change" REAL DEFAULT 0;'
+      )
+      console.log('Migrasi kolom "change" ke Transaction berhasil.')
+    } catch (err: any) {
+      if (
+        err.message &&
+        (err.message.includes('duplicate column') || err.message.includes('already exists'))
+      ) {
+        // Kolom sudah ada, abaikan
+      } else {
+        console.error('Gagal migrasi kolom change:', err.message || err)
+      }
+    }
+
+    // 4. Tambah tabel Expense jika belum ada
+    try {
+      await client.$executeRawUnsafe(`
+        CREATE TABLE IF NOT EXISTS "Expense" (
+          "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+          "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          "title" TEXT NOT NULL,
+          "category" TEXT NOT NULL DEFAULT 'Operasional',
+          "amount" REAL NOT NULL,
+          "qty" INTEGER DEFAULT 0,
+          "notes" TEXT NOT NULL DEFAULT '',
+          "productId" INTEGER
+        );
+      `)
+      console.log('Migrasi tabel "Expense" berhasil.')
+    } catch (err: any) {
+      console.error('Gagal migrasi tabel Expense:', err.message || err)
+    }
+  } catch (globalErr: any) {
+    console.error('Global error migrasi manual:', globalErr.message || globalErr)
+  }
 }
 
 export function getPrisma(): PrismaClient {

@@ -34,6 +34,16 @@ const api = {
   deleteProductType: (id: number) => ipcRenderer.invoke('delete-product-type', id),
   getTransactions: () => ipcRenderer.invoke('get-transactions'),
   deleteTransaction: (id: number) => ipcRenderer.invoke('delete-transaction', id),
+  getExpenses: () => ipcRenderer.invoke('get-expenses'),
+  createExpense: (data: {
+    title: string
+    category: string
+    amount: number
+    qty?: number
+    notes?: string
+    productId?: number
+  }) => ipcRenderer.invoke('create-expense', data),
+  deleteExpense: (id: number) => ipcRenderer.invoke('delete-expense', id),
   login: (data: { username: string; password: string }) => ipcRenderer.invoke('login', data),
   register: (data: { username: string; name: string; password: string }) =>
     ipcRenderer.invoke('register', data),

@@ -173,9 +173,7 @@ export default function TransactionManager({
       {/* Sisi Kiri: Daftar Transaksi */}
       <div className="product-table-wrapper">
         <div className="table-header-row">
-          <h4 style={{ fontFamily: 'var(--font-title)', fontWeight: 700 }}>
-            Riwayat Transaksi
-          </h4>
+          <h4 style={{ fontFamily: 'var(--font-title)', fontWeight: 700 }}>Riwayat Transaksi</h4>
           <input
             type="text"
             placeholder="Cari ID, Penjual, Pembeli..."
@@ -264,32 +262,7 @@ export default function TransactionManager({
                 {summary.count}
               </div>
             </div>
-            <div
-              className="summary-card"
-              style={{
-                background: 'rgba(255, 255, 255, 0.03)',
-                border: '1px solid var(--glass-border)',
-                padding: '12px',
-                borderRadius: '8px'
-              }}
-            >
-              <div
-                style={{
-                  fontSize: '10px',
-                  color: '#9ca3af',
-                  textTransform: 'uppercase',
-                  fontWeight: 600,
-                  letterSpacing: '0.05em'
-                }}
-              >
-                Total Penjualan
-              </div>
-              <div
-                style={{ fontSize: '16px', fontWeight: 700, marginTop: '4px', color: '#818cf8' }}
-              >
-                Rp{summary.totalSales.toLocaleString('id-ID')}
-              </div>
-            </div>
+
             <div
               className="summary-card"
               style={{
@@ -316,6 +289,34 @@ export default function TransactionManager({
                 Rp{summary.totalCost.toLocaleString('id-ID')}
               </div>
             </div>
+
+            <div
+              className="summary-card"
+              style={{
+                background: 'rgba(255, 255, 255, 0.03)',
+                border: '1px solid var(--glass-border)',
+                padding: '12px',
+                borderRadius: '8px'
+              }}
+            >
+              <div
+                style={{
+                  fontSize: '10px',
+                  color: '#9ca3af',
+                  textTransform: 'uppercase',
+                  fontWeight: 600,
+                  letterSpacing: '0.05em'
+                }}
+              >
+                Total Penjualan
+              </div>
+              <div
+                style={{ fontSize: '16px', fontWeight: 700, marginTop: '4px', color: '#818cf8' }}
+              >
+                Rp{summary.totalSales.toLocaleString('id-ID')}
+              </div>
+            </div>
+
             <div
               className="summary-card"
               style={{
@@ -362,12 +363,14 @@ export default function TransactionManager({
               <thead>
                 <tr>
                   <th style={{ textAlign: 'center', width: '60px' }}>No</th>
-                  <th style={{ textAlign: 'center', width: '60px' }}>ID</th>
-                  <th style={{ textAlign: 'center', width: '60px' }}>Penjual</th>
+                  {/* <th style={{ textAlign: 'center', width: '60px' }}>ID</th> */}
+                  {/* <th style={{ textAlign: 'center', width: '60px' }}>Penjual</th> */}
                   <th style={{ textAlign: 'center', width: '60px' }}>Pembeli</th>
-                  <th>Tanggal & Waktu</th>
-                  <th style={{ textAlign: 'center', width: '160px' }}>Total</th>
-                  <th style={{ textAlign: 'center', width: '160px' }}>Aksi</th>
+                  <th>Tanggal Transaksi</th>
+                  <th style={{ textAlign: 'right', width: '140px' }}>Total Modal</th>
+                  <th style={{ textAlign: 'right', width: '140px' }}>Total Jual</th>
+                  <th style={{ textAlign: 'right', width: '120px' }}>Laba</th>
+                  <th style={{ textAlign: 'center', width: '140px' }}>Aksi</th>
                 </tr>
               </thead>
               <tbody>
@@ -384,18 +387,65 @@ export default function TransactionManager({
                     <td style={{ textAlign: 'center', color: '#9ca3af', fontFamily: 'monospace' }}>
                       {index + 1}
                     </td>
-                    <td style={{ textAlign: 'center', color: '#9ca3af', fontFamily: 'monospace' }}>
+                    {/* <td style={{ textAlign: 'center', color: '#9ca3af', fontFamily: 'monospace' }}>
                       {t.id}
-                    </td>
-                    <td style={{ textAlign: 'center', color: '#9ca3af', fontFamily: 'monospace' }}>
+                    </td> */}
+                    {/* <td style={{ textAlign: 'center', color: '#9ca3af', fontFamily: 'monospace' }}>
                       {t.seller}
-                    </td>
-                    <td style={{ textAlign: 'center', color: '#9ca3af', fontFamily: 'monospace' }}>
+                    </td> */}
+                    <td style={{ textAlign: 'left', color: '#9ca3af', fontFamily: 'monospace' }}>
                       {t.buyer}
                     </td>
-                    <td>{formatDate(t.createdAt)}</td>
-                    <td style={{ textAlign: 'right', fontWeight: 600 }}>
+                    <td>
+                      {formatDate(t.createdAt)}
+                    </td>
+                    {/* Total Modal per transaksi */}
+                    <td style={{ textAlign: 'right', fontWeight: 600, color: '#fb923c' }}>
+                      {(() => {
+                        const cost = t.items
+                          ? t.items.reduce(
+                            (sum, item) =>
+                              sum + (item.product?.purchasePrice ?? 0) * item.quantity,
+                            0
+                          )
+                          : 0
+                        return `Rp${cost.toLocaleString('id-ID')}`
+                      })()}
+                    </td>
+                    {/* Total Jual */}
+                    <td style={{ textAlign: 'right', fontWeight: 600, color: '#818cf8' }}>
                       Rp{t.total.toLocaleString('id-ID')}
+                    </td>
+                    {/* Laba per transaksi */}
+                    <td
+                      style={{
+                        textAlign: 'right',
+                        fontWeight: 700,
+                        color:
+                          t.total -
+                            (t.items
+                              ? t.items.reduce(
+                                (sum, item) =>
+                                  sum + (item.product?.purchasePrice ?? 0) * item.quantity,
+                                0
+                              )
+                              : 0) >=
+                            0
+                            ? '#34d399'
+                            : '#f87171'
+                      }}
+                    >
+                      {(() => {
+                        const cost = t.items
+                          ? t.items.reduce(
+                            (sum, item) =>
+                              sum + (item.product?.purchasePrice ?? 0) * item.quantity,
+                            0
+                          )
+                          : 0
+                        const profit = t.total - cost
+                        return `Rp${profit.toLocaleString('id-ID')}`
+                      })()}
                     </td>
                     <td style={{ textAlign: 'center' }} onClick={(e): void => e.stopPropagation()}>
                       <div className="table-actions">

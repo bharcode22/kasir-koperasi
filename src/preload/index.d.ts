@@ -34,6 +34,16 @@ declare global {
       deleteProductType: (id: number) => Promise<any>
       getTransactions: () => Promise<any[]>
       deleteTransaction: (id: number) => Promise<any>
+      getExpenses: () => Promise<any[]>
+      createExpense: (data: {
+        title: string
+        category: string
+        amount: number
+        qty?: number
+        notes?: string
+        productId?: number
+      }) => Promise<any>
+      deleteExpense: (id: number) => Promise<any>
       login: (data: {
         username: string
         password: string
