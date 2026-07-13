@@ -345,10 +345,10 @@ export default function SalesReport({ transactions }: SalesReportProps): React.J
                 <th>Tipe</th>
                 <th style={{ textAlign: 'center', width: '80px' }}>Terjual</th>
                 <th style={{ textAlign: 'right' }}>Harga Beli</th>
-                <th style={{ textAlign: 'right' }}>Harga Jual</th>
-                <th style={{ textAlign: 'right' }}>Total Modal</th>
-                <th style={{ textAlign: 'right' }}>Total Omset</th>
-                <th style={{ textAlign: 'right' }}>Laba Bersih</th>
+                <th style={{ textAlign: 'right' }}>Harga Satuan</th>
+                <th style={{ textAlign: 'right' }}>Total Pembelian</th>
+                <th style={{ textAlign: 'right' }}>Total Penjualan</th>
+                <th style={{ textAlign: 'right' }}>Laba Kotor</th>
               </tr>
             </thead>
             <tbody>
