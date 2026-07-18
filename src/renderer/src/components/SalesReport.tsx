@@ -15,6 +15,13 @@ interface TransactionItem {
   product?: Product
   quantity: number
   price: number
+  purchasePrice?: number | null
+}
+
+const getItemPurchasePrice = (item: TransactionItem): number => {
+  return item.purchasePrice !== null && item.purchasePrice !== undefined
+    ? item.purchasePrice
+    : (item.product?.purchasePrice ?? 0)
 }
 
 interface Transaction {
@@ -76,7 +83,7 @@ export default function SalesReport({ transactions }: SalesReportProps): React.J
           const type = item.product?.type || 'Umum'
           const qty = item.quantity
           const revenue = item.price * qty
-          const buyPrice = item.product?.purchasePrice ?? 0
+          const buyPrice = getItemPurchasePrice(item)
           const cost = buyPrice * qty
 
           if (!map[pid]) {

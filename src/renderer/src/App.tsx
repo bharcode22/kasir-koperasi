@@ -337,7 +337,8 @@ function App(): React.JSX.Element {
     const items = cart.map((item) => ({
       productId: item.product.id,
       quantity: item.quantity,
-      price: item.product.price
+      price: item.product.price,
+      purchasePrice: item.product.purchasePrice
     }))
 
     const sellerName = currentUser?.name || 'Umum'
@@ -474,6 +475,7 @@ function App(): React.JSX.Element {
                 onFormChange={setFormData}
                 onSubmit={handleSubmitProduct}
                 isEditing={!!editingProduct}
+                editingProduct={editingProduct}
                 onCancelEdit={cancelEdit}
                 productTypes={productTypes}
               />

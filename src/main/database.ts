@@ -126,6 +126,23 @@ async function runManualMigrations(client: PrismaClient): Promise<void> {
     } catch (err: any) {
       console.error('Gagal migrasi tabel Expense:', err.message || err)
     }
+
+    // 5. Tambah purchasePrice ke tabel TransactionItem jika belum ada
+    try {
+      await client.$executeRawUnsafe(
+        'ALTER TABLE "TransactionItem" ADD COLUMN "purchasePrice" REAL NULL;'
+      )
+      console.log('Migrasi kolom "purchasePrice" ke TransactionItem berhasil.')
+    } catch (err: any) {
+      if (
+        err.message &&
+        (err.message.includes('duplicate column') || err.message.includes('already exists'))
+      ) {
+        // Kolom sudah ada, abaikan
+      } else {
+        console.error('Gagal migrasi kolom purchasePrice ke TransactionItem:', err.message || err)
+      }
+    }
   } catch (globalErr: any) {
     console.error('Global error migrasi manual:', globalErr.message || globalErr)
   }

@@ -15,6 +15,13 @@ interface TransactionItem {
   product?: Product
   quantity: number
   price: number
+  purchasePrice?: number | null
+}
+
+const getItemPurchasePrice = (item: TransactionItem): number => {
+  return item.purchasePrice !== null && item.purchasePrice !== undefined
+    ? item.purchasePrice
+    : (item.product?.purchasePrice ?? 0)
 }
 
 interface Transaction {
@@ -141,7 +148,7 @@ export default function TransactionManager({
       totalSales += tx.total
       if (tx.items) {
         for (const item of tx.items) {
-          const buyPrice = item.product?.purchasePrice ?? 0
+          const buyPrice = getItemPurchasePrice(item)
           totalCost += buyPrice * item.quantity
         }
       }
@@ -405,7 +412,7 @@ export default function TransactionManager({
                         const cost = t.items
                           ? t.items.reduce(
                             (sum, item) =>
-                              sum + (item.product?.purchasePrice ?? 0) * item.quantity,
+                              sum + getItemPurchasePrice(item) * item.quantity,
                             0
                           )
                           : 0
@@ -426,7 +433,7 @@ export default function TransactionManager({
                             (t.items
                               ? t.items.reduce(
                                 (sum, item) =>
-                                  sum + (item.product?.purchasePrice ?? 0) * item.quantity,
+                                  sum + getItemPurchasePrice(item) * item.quantity,
                                 0
                               )
                               : 0) >=
@@ -439,7 +446,7 @@ export default function TransactionManager({
                         const cost = t.items
                           ? t.items.reduce(
                             (sum, item) =>
-                              sum + (item.product?.purchasePrice ?? 0) * item.quantity,
+                              sum + getItemPurchasePrice(item) * item.quantity,
                             0
                           )
                           : 0

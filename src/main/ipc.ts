@@ -122,7 +122,7 @@ export function registerIpcHandlers(): void {
         buyer: string
         cashReceived?: number
         change?: number
-        items: { productId: number; quantity: number; price: number }[]
+        items: { productId: number; quantity: number; price: number; purchasePrice?: number }[]
       }
     ) => {
       const prisma = getPrisma()
@@ -144,7 +144,8 @@ export function registerIpcHandlers(): void {
               create: data.items.map((item) => ({
                 productId: item.productId,
                 quantity: item.quantity,
-                price: item.price
+                price: item.price,
+                purchasePrice: item.purchasePrice
               }))
             }
           }

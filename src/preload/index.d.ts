@@ -17,7 +17,7 @@ declare global {
         buyer: string
         cashReceived?: number
         change?: number
-        items: { productId: number; quantity: number; price: number }[]
+        items: { productId: number; quantity: number; price: number; purchasePrice?: number }[]
       }) => Promise<any>
       updateProduct: (data: {
         id: number
