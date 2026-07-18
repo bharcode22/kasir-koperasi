@@ -146,13 +146,14 @@ export default function CartPanel({
 
           <div className="buyer-input-wrapper" style={{ borderTop: 'none', paddingTop: 0 }}>
             <label htmlFor="cash-received-input" className="buyer-input-label">
-              Uang Diterima
+              Uang Diterima <span style={{ color: '#ef4444' }}>*</span>
             </label>
             <input
               id="cash-received-input"
               type="text"
               className="buyer-input"
               placeholder="Rp0"
+              required
               value={cashReceived}
               onChange={handleCashChange}
             />
@@ -214,7 +215,7 @@ export default function CartPanel({
         <button
           id="btn-pay"
           className="pay-btn"
-          disabled={cart.length === 0 || (cashReceivedVal > 0 && changeVal < 0)}
+          disabled={cart.length === 0 || !cashReceived || changeVal < 0}
           onClick={(): void => onCheckout(buyer.trim(), cashReceivedVal, changeVal)}
         >
           Proses Pembayaran (Bayar)

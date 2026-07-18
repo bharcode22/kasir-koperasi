@@ -140,7 +140,7 @@ export default function ProductTable({
                 letterSpacing: '0.05em'
               }}
             >
-              Total Modal Aset
+              Harga Beli
             </div>
             <div style={{ fontSize: '16px', fontWeight: 700, marginTop: '4px', color: '#fb923c' }}>
               Rp{stockSummary.totalAssetCost.toLocaleString('id-ID')}
@@ -164,7 +164,7 @@ export default function ProductTable({
                 letterSpacing: '0.05em'
               }}
             >
-              Nilai Jual Aset
+              Harga Jual
             </div>
             <div style={{ fontSize: '16px', fontWeight: 700, marginTop: '4px', color: '#818cf8' }}>
               Rp{stockSummary.totalAssetValue.toLocaleString('id-ID')}
@@ -188,7 +188,7 @@ export default function ProductTable({
                 letterSpacing: '0.05em'
               }}
             >
-              Potensi Laba Aset
+              Laba Kotor
             </div>
             <div
               style={{

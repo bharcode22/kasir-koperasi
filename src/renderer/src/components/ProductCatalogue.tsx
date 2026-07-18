@@ -26,8 +26,8 @@ export default function ProductCatalogue({
     const q = searchQuery.toLowerCase()
     return q
       ? products.filter(
-          (p) => p.name.toLowerCase().includes(q) || (p.type || '').toLowerCase().includes(q)
-        )
+        (p) => p.name.toLowerCase().includes(q) || (p.type || '').toLowerCase().includes(q)
+      )
       : products
   }, [products, searchQuery])
 

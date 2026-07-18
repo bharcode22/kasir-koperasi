@@ -281,7 +281,7 @@ export default function TransactionManager({
                   letterSpacing: '0.05em'
                 }}
               >
-                Total Modal
+                Total Pembelian
               </div>
               <div
                 style={{ fontSize: '16px', fontWeight: 700, marginTop: '4px', color: '#fb923c' }}
@@ -335,7 +335,7 @@ export default function TransactionManager({
                   letterSpacing: '0.05em'
                 }}
               >
-                Laba Bersih Kotor
+                Laba Kotor
               </div>
               <div
                 style={{
@@ -367,7 +367,7 @@ export default function TransactionManager({
                   {/* <th style={{ textAlign: 'center', width: '60px' }}>Penjual</th> */}
                   <th style={{ textAlign: 'center', width: '60px' }}>Pembeli</th>
                   <th>Tanggal Transaksi</th>
-                  <th style={{ textAlign: 'right', width: '140px' }}>Total Modal</th>
+                  <th style={{ textAlign: 'right', width: '140px' }}>Total Pembelian</th>
                   <th style={{ textAlign: 'right', width: '140px' }}>Total Jual</th>
                   <th style={{ textAlign: 'right', width: '120px' }}>Laba</th>
                   <th style={{ textAlign: 'center', width: '140px' }}>Aksi</th>
@@ -480,6 +480,9 @@ export default function TransactionManager({
         <h3 style={{ fontFamily: 'var(--font-title)', fontWeight: 700, marginBottom: '16px' }}>
           Detail Nota Penjualan
         </h3>
+        <h3 style={{ fontFamily: 'var(--font-title)', fontWeight: 700, marginBottom: '16px' }}>
+          KDMP Uian
+        </h3>
 
         {!selectedTx ? (
           <div className="detail-empty">
@@ -516,7 +519,8 @@ export default function TransactionManager({
 
             <div className="receipt-container">
               <div className="receipt-header">
-                <div className="receipt-title">NOTA PENJUALAN</div>
+                <div className="receipt-title">KDMP ULIAN</div>
+                <div className="receipt-subtitle">NOTA PENJUALAN</div>
                 <div className="receipt-meta">
                   <table className="receipt-meta-table">
                     <tbody>
