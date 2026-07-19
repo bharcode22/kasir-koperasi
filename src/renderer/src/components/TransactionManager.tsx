@@ -569,9 +569,25 @@ export default function TransactionManager({
                     <tr key={item.id}>
                       <td>
                         <div>{item.product?.name || 'Barang Dihapus'}</div>
-                        {item.product?.type && (
-                          <span className="receipt-item-type">{item.product.type}</span>
-                        )}
+                        <div style={{ display: 'flex', gap: '6px', alignItems: 'center', marginTop: '2px' }}>
+                          {item.product?.type && (
+                            <span className="receipt-item-type">{item.product.type}</span>
+                          )}
+                          {item.product && (
+                            <span
+                              style={{
+                                fontSize: '10px',
+                                background: 'rgba(251, 146, 60, 0.15)',
+                                color: '#fb923c',
+                                padding: '1px 4px',
+                                borderRadius: '4px',
+                                fontFamily: 'var(--font-sans)'
+                              }}
+                            >
+                              Sisa: {item.product.stock}
+                            </span>
+                          )}
+                        </div>
                       </td>
                       <td style={{ textAlign: 'center' }}>{item.quantity}</td>
                       <td style={{ textAlign: 'right' }}>Rp{item.price.toLocaleString('id-ID')}</td>

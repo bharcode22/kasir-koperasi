@@ -72,6 +72,7 @@ export default function SalesReport({ transactions }: SalesReportProps): React.J
         quantitySold: number
         totalRevenue: number
         totalCost: number
+        stock: number
       }
     > = {}
 
@@ -93,7 +94,8 @@ export default function SalesReport({ transactions }: SalesReportProps): React.J
               type,
               quantitySold: 0,
               totalRevenue: 0,
-              totalCost: 0
+              totalCost: 0,
+              stock: item.product?.stock ?? 0
             }
           }
 
@@ -351,6 +353,7 @@ export default function SalesReport({ transactions }: SalesReportProps): React.J
                 <th style={{ textAlign: 'center', width: '50px' }}>No</th>
                 <th>Nama Barang</th>
                 <th>Tipe</th>
+                <th style={{ textAlign: 'center', width: '80px' }}>Sisa Stok</th>
                 <th style={{ textAlign: 'center', width: '80px' }}>Terjual</th>
                 <th style={{ textAlign: 'right' }}>Harga Beli</th>
                 <th style={{ textAlign: 'right' }}>Harga Satuan</th>
@@ -368,6 +371,11 @@ export default function SalesReport({ transactions }: SalesReportProps): React.J
                   <td style={{ fontWeight: 600 }}>{item.name}</td>
                   <td>
                     <span style={{ opacity: 0.8, fontSize: '12px' }}>{item.type}</span>
+                  </td>
+                  <td style={{ textAlign: 'center' }}>
+                    <span className={`table-stock-badge ${item.stock <= 0 ? 'out' : ''}`}>
+                      {item.stock}
+                    </span>
                   </td>
                   <td style={{ textAlign: 'center', fontWeight: 600 }}>{item.quantitySold} pcs</td>
                   <td style={{ textAlign: 'right' }}>
