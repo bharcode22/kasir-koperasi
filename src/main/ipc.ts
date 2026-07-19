@@ -265,7 +265,10 @@ export function registerIpcHandlers(): void {
     transactions.forEach((t) => {
       if (t.items && Array.isArray(t.items)) {
         t.items.forEach((item) => {
-          const purchasePrice = item.product?.purchasePrice ?? 0
+          const purchasePrice =
+            item.purchasePrice !== null && item.purchasePrice !== undefined
+              ? item.purchasePrice
+              : (item.product?.purchasePrice ?? 0)
           const sellPrice = item.price
           const quantity = item.quantity
           const totalCost = purchasePrice * quantity
@@ -288,7 +291,7 @@ export function registerIpcHandlers(): void {
             'Harga Jual Satuan': sellPrice,
             'Total Harga Beli': totalCost,
             'Total Harga Jual': totalSales,
-            'Laba Bersih': profit
+            'Laba Kotor': profit
           })
         })
       }
@@ -307,7 +310,7 @@ export function registerIpcHandlers(): void {
         'Harga Jual Satuan': '',
         'Total Harga Beli': '',
         'Total Harga Jual': '',
-        'Laba Bersih': ''
+        'Laba Kotor': ''
       })
       // Total row
       rows.push({
@@ -321,7 +324,7 @@ export function registerIpcHandlers(): void {
         'Harga Jual Satuan': '',
         'Total Harga Beli': totalCostSum,
         'Total Harga Jual': totalSalesSum,
-        'Laba Bersih': totalProfitSum
+        'Laba Kotor': totalProfitSum
       })
     }
 
@@ -359,7 +362,7 @@ export function registerIpcHandlers(): void {
       'Harga Jual Rata-Rata': Math.round(item.avgSellPrice),
       'Total Modal (Beli)': item.totalCost,
       'Total Omset (Jual)': item.totalRevenue,
-      'Laba Bersih': item.profit
+      'Laba Kotor': item.profit
     }))
 
     // Calculate sum totals
@@ -386,7 +389,7 @@ export function registerIpcHandlers(): void {
         'Harga Jual Rata-Rata': '',
         'Total Modal (Beli)': '',
         'Total Omset (Jual)': '',
-        'Laba Bersih': ''
+        'Laba Kotor': ''
       })
       // Total row
       rows.push({
@@ -398,7 +401,7 @@ export function registerIpcHandlers(): void {
         'Harga Jual Rata-Rata': '',
         'Total Modal (Beli)': totalCost,
         'Total Omset (Jual)': totalRevenue,
-        'Laba Bersih': totalProfit
+        'Laba Kotor': totalProfit
       })
     }
 
@@ -453,16 +456,20 @@ export function registerIpcHandlers(): void {
 // Helper untuk menghasilkan HTML nota belanja/struk thermal
 function generateReceiptHtml(t: any): string {
   const itemsHtml = (t.items || [])
-    .map(
-      (item: any) => `
+    .map((item: any) => {
+      const purchasePrice =
+        item.purchasePrice !== null && item.purchasePrice !== undefined
+          ? item.purchasePrice
+          : (item.product?.purchasePrice ?? 0)
+      return `
     <tr>
       <td>${item.product?.name || 'Barang Dihapus'}</td>
       <td style="text-align: center;">${item.quantity}</td>
-      <td style="text-align: right;">Rp${(item.product?.purchasePrice ?? 0).toLocaleString('id-ID')}</td>
+      <td style="text-align: right;">Rp${purchasePrice.toLocaleString('id-ID')}</td>
       <td style="text-align: right;">Rp${item.price.toLocaleString('id-ID')}</td>
     </tr>
   `
-    )
+    })
     .join('')
 
   const dateStr = new Date(t.createdAt).toLocaleString('id-ID', {
@@ -511,8 +518,7 @@ function generateReceiptHtml(t: any): string {
     </head>
     <body>
       <div class="header text-center">
-        <div class="title">KASIR KOPERASI</div>
-        <div style="font-size: 10px;">Koperasi Winangun Artha</div>
+        <div class="title">KDMP ULIAN</div>
         <div class="divider"></div>
       </div>
       

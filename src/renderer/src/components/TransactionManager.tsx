@@ -487,9 +487,6 @@ export default function TransactionManager({
         <h3 style={{ fontFamily: 'var(--font-title)', fontWeight: 700, marginBottom: '16px' }}>
           Detail Nota Penjualan
         </h3>
-        <h3 style={{ fontFamily: 'var(--font-title)', fontWeight: 700, marginBottom: '16px' }}>
-          KDMP Uian
-        </h3>
 
         {!selectedTx ? (
           <div className="detail-empty">
