@@ -1,5 +1,5 @@
 import { ipcMain, dialog, BrowserWindow } from 'electron'
-import { getPrisma } from './database'
+import { getPrisma, getDbPath, restoreDatabase } from './database'
 import bcrypt from 'bcryptjs'
 import * as XLSX from 'xlsx'
 import * as fs from 'fs'
@@ -180,35 +180,49 @@ export function registerIpcHandlers(): void {
 
   // IPC handler untuk menghapus transaksi dari riwayat dan mengembalikan stok barang
   ipcMain.handle('delete-transaction', async (_, id: number) => {
-    const prisma = getPrisma()
-    return await prisma.$transaction(async (tx) => {
-      // 1. Ambil detail items untuk mengembalikan stok
-      const items = await tx.transactionItem.findMany({
-        where: { transactionId: id }
-      })
+    try {
+      const prisma = getPrisma()
+      return await prisma.$transaction(async (tx) => {
+        // 1. Ambil detail items untuk mengembalikan stok
+        const items = await tx.transactionItem.findMany({
+          where: { transactionId: id }
+        })
 
-      // 2. Kembalikan stok untuk setiap produk
-      for (const item of items) {
-        await tx.product.update({
-          where: { id: item.productId },
-          data: {
-            stock: {
-              increment: item.quantity
+        // 2. Kembalikan stok untuk setiap produk jika produk masih ada
+        for (const item of items) {
+          if (item.productId) {
+            const productExists = await tx.product.findUnique({
+              where: { id: item.productId }
+            })
+            if (productExists) {
+              await tx.product.update({
+                where: { id: item.productId },
+                data: {
+                  stock: {
+                    increment: item.quantity
+                  }
+                }
+              })
             }
           }
+        }
+
+        // 3. Hapus detail item transaksi (karena foreign key constraint)
+        await tx.transactionItem.deleteMany({
+          where: { transactionId: id }
         })
-      }
 
-      // 3. Hapus detail item transaksi (karena foreign key constraint)
-      await tx.transactionItem.deleteMany({
-        where: { transactionId: id }
-      })
+        // 4. Hapus transaksi utama
+        await tx.transaction.delete({
+          where: { id }
+        })
 
-      // 4. Hapus transaksi utama
-      return await tx.transaction.delete({
-        where: { id }
+        return { success: true }
       })
-    })
+    } catch (err: any) {
+      console.error('Gagal menghapus transaksi:', err)
+      return { success: false, message: err.message || 'Gagal menghapus transaksi dari database' }
+    }
   })
 
   // IPC handler untuk register user baru
@@ -446,6 +460,58 @@ export function registerIpcHandlers(): void {
     }
   })
 
+  // IPC handler untuk Backup Database SQLite
+  ipcMain.handle('backup-database', async () => {
+    try {
+      const dbPath = getDbPath()
+      if (!fs.existsSync(dbPath)) {
+        return { success: false, message: 'File database tidak ditemukan di sistem' }
+      }
+
+      const todayStr = new Date().toISOString().split('T')[0]
+      const defaultFilename = `backup-kasir-koperasi-${todayStr}.db`
+
+      const { filePath } = await dialog.showSaveDialog({
+        title: 'Simpan Backup Database (.db)',
+        defaultPath: defaultFilename,
+        filters: [{ name: 'SQLite Database', extensions: ['db', 'sqlite'] }]
+      })
+
+      if (!filePath) {
+        return { success: false, message: 'Backup dibatalkan' }
+      }
+
+      fs.copyFileSync(dbPath, filePath)
+      return { success: true, filePath }
+    } catch (err: any) {
+      console.error('Gagal membuat backup database:', err)
+      return { success: false, message: err.message || 'Gagal membuat backup database' }
+    }
+  })
+
+  // IPC handler untuk Restore Database SQLite
+  ipcMain.handle('restore-database', async () => {
+    try {
+      const { filePaths } = await dialog.showOpenDialog({
+        title: 'Pilih File Backup Database (.db)',
+        properties: ['openFile'],
+        filters: [{ name: 'SQLite Database', extensions: ['db', 'sqlite'] }]
+      })
+
+      if (!filePaths || filePaths.length === 0) {
+        return { success: false, message: 'Restore dibatalkan' }
+      }
+
+      const backupPath = filePaths[0]
+      await restoreDatabase(backupPath)
+
+      return { success: true }
+    } catch (err: any) {
+      console.error('Gagal memulihkan database:', err)
+      return { success: false, message: err.message || 'Gagal memulihkan database' }
+    }
+  })
+
   // IPC handler untuk cetak langsung ke printer
   ipcMain.handle('print-to-printer', async (_, transaction: any) => {
     try {
@@ -463,16 +529,13 @@ export function registerIpcHandlers(): void {
 function generateReceiptHtml(t: any): string {
   const itemsHtml = (t.items || [])
     .map((item: any) => {
-      const purchasePrice =
-        item.purchasePrice !== null && item.purchasePrice !== undefined
-          ? item.purchasePrice
-          : (item.product?.purchasePrice ?? 0)
+      const itemTotal = item.price * item.quantity
       return `
     <tr>
-      <td>${item.product?.name || 'Barang Dihapus'}</td>
+      <td style="word-break: break-word; text-align: left;">${item.product?.name || 'Barang Dihapus'}</td>
       <td style="text-align: center;">${item.quantity}</td>
-      <td style="text-align: right;">Rp${purchasePrice.toLocaleString('id-ID')}</td>
-      <td style="text-align: right;">Rp${item.price.toLocaleString('id-ID')}</td>
+      <td style="text-align: right;">${item.price.toLocaleString('id-ID')}</td>
+      <td style="text-align: right;">${itemTotal.toLocaleString('id-ID')}</td>
     </tr>
   `
     })
@@ -494,99 +557,113 @@ function generateReceiptHtml(t: any): string {
       <title>Nota Belanja #${t.id}</title>
       <style>
         @page {
-          size: 80mm 160mm;
+          size: 58mm auto;
           margin: 0;
         }
-        body {
-          font-family: 'Courier New', Courier, monospace;
-          font-size: 11px;
-          color: black;
+        * {
           margin: 0;
-          padding: 8px;
-          width: 80mm;
+          padding: 0;
           box-sizing: border-box;
+        }
+        html, body {
+          width: 100% !important;
+          margin: 0 !important;
+          padding: 0 !important;
+          font-family: 'Consolas', 'Courier New', monospace;
+          font-size: 10.5px;
+          font-weight: 700;
+          color: #000000;
+          word-break: break-word;
+          overflow-wrap: break-word;
+          -webkit-font-smoothing: none;
+          text-rendering: geometricPrecision;
+        }
+        .receipt-body {
+          width: 49mm !important;
+          max-width: 49mm !important;
+          margin: 0 auto !important;
+          padding: 0 !important;
         }
         .text-center { text-align: center; }
         .text-right { text-align: right; }
         .bold { font-weight: bold; }
-        .header { margin-bottom: 10px; }
-        .title { font-size: 14px; font-weight: bold; margin-bottom: 2px; }
-        .divider { border-top: 1px dashed black; margin: 8px 0; }
-        .meta-table, .items-table { width: 100%; border-collapse: collapse; }
-        .meta-table td { font-size: 10px; padding: 1px 0; vertical-align: top; }
-        .items-table th, .items-table td { font-size: 10px; padding: 2px 0; vertical-align: top; }
-        .items-table th { border-bottom: 1px dashed black; text-align: left; }
-        .summary-section { margin-top: 8px; }
-        .summary-row { display: flex; justify-content: space-between; font-size: 10px; padding: 1px 0; }
-        .grand-total { font-weight: bold; font-size: 12px; border-top: 1px dashed black; padding-top: 4px; margin-top: 4px; }
-        .footer { margin-top: 15px; font-size: 9px; }
+        .header { margin: 0 0 4px 0 !important; padding: 0 !important; }
+        .title { font-size: 16px; font-weight: 800; margin: 0 0 2px 0 !important; padding: 0 !important; line-height: 1.1; }
+        .divider { border-top: 1.5px solid black; margin: 4px 0; }
+        .meta-table, .items-table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+        .meta-table td { font-size: 10px; font-weight: 700; padding: 1px 0; vertical-align: top; color: #000000; }
+        .items-table th, .items-table td { font-size: 10px; font-weight: 700; padding: 2px 0; vertical-align: top; color: #000000; }
+        .items-table th { border-bottom: 1.5px solid black; font-weight: 800; }
+        .summary-section { margin-top: 5px; }
+        .summary-row { display: flex; justify-content: space-between; font-size: 10.5px; font-weight: 700; padding: 1px 0; color: #000000; }
+        .grand-total { font-weight: 800; font-size: 12.5px; border-top: 1.5px solid black; padding-top: 3px; margin-top: 3px; }
+        .footer { margin-top: 8px; font-size: 9px; font-weight: 700; }
       </style>
     </head>
     <body>
-      <div class="header text-center">
-        <div class="title">KDMP ULIAN</div>
+      <div class="receipt-body">
+        <div class="header text-center"><div class="title">KDMP ULIAN</div><div class="divider"></div></div>
+        
+        <table class="meta-table">
+          <tbody>
+            <tr><td style="width: 70px;">ID Transaksi</td><td>: #${t.id}</td></tr>
+            <tr><td>Tanggal</td><td>: ${dateStr}</td></tr>
+            <tr><td>Penjual</td><td>: ${t.seller || 'Umum'}</td></tr>
+            <tr><td>Pembeli</td><td>: ${t.buyer || 'Umum'}</td></tr>
+          </tbody>
+        </table>
+        
         <div class="divider"></div>
-      </div>
-      
-      <table class="meta-table">
-        <tbody>
-          <tr><td style="width: 90px;">ID Transaksi</td><td>: #${t.id}</td></tr>
-          <tr><td>Tanggal</td><td>: ${dateStr}</td></tr>
-          <tr><td>Penjual</td><td>: ${t.seller || 'Umum'}</td></tr>
-          <tr><td>Pembeli</td><td>: ${t.buyer || 'Umum'}</td></tr>
-        </tbody>
-      </table>
-      
-      <div class="divider"></div>
-      
-      <table class="items-table">
-        <thead>
-          <tr>
-            <th>Barang</th>
-            <th style="text-align: center; width: 30px;">Qty</th>
-            <th style="text-align: right; width: 65px;">H.Beli</th>
-            <th style="text-align: right; width: 65px;">Harga</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${itemsHtml}
-        </tbody>
-      </table>
-      
-      <div class="divider"></div>
-      
-      <div class="summary-section">
-        <div class="summary-row">
-          <span>Subtotal</span>
-          <span>Rp${t.total.toLocaleString('id-ID')}</span>
+        
+        <table class="items-table">
+          <thead>
+            <tr>
+              <th style="text-align: left; width: 36%;">Barang</th>
+              <th style="text-align: center; width: 12%;">Qty</th>
+              <th style="text-align: right; width: 26%;">Harga</th>
+              <th style="text-align: right; width: 26%;">Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${itemsHtml}
+          </tbody>
+        </table>
+        
+        <div class="divider"></div>
+        
+        <div class="summary-section">
+          <div class="summary-row">
+            <span>Subtotal</span>
+            <span>Rp${t.total.toLocaleString('id-ID')}</span>
+          </div>
+          <div class="summary-row">
+            <span>Pajak (0%)</span>
+            <span>Rp0</span>
+          </div>
+          <div class="summary-row grand-total">
+            <span>TOTAL AKHIR</span>
+            <span>Rp${t.total.toLocaleString('id-ID')}</span>
+          </div>
+          ${
+            t.cashReceived !== undefined && t.cashReceived > 0
+              ? `
+          <div class="summary-row" style="margin-top: 3px;">
+            <span>Uang Bayar</span>
+            <span>Rp${t.cashReceived.toLocaleString('id-ID')}</span>
+          </div>
+          <div class="summary-row">
+            <span>Kembalian</span>
+            <span>Rp${t.change.toLocaleString('id-ID')}</span>
+          </div>
+          `
+              : ''
+          }
         </div>
-        <div class="summary-row">
-          <span>Pajak (0%)</span>
-          <span>Rp0</span>
+        
+        <div class="footer text-center">
+          <div>Terima Kasih Atas Kunjungan Anda</div>
+          <div>Barang yang sudah dibeli tidak dapat ditukar/dikembalikan</div>
         </div>
-        <div class="summary-row grand-total">
-          <span>TOTAL AKHIR</span>
-          <span>Rp${t.total.toLocaleString('id-ID')}</span>
-        </div>
-        ${
-          t.cashReceived !== undefined && t.cashReceived > 0
-            ? `
-        <div class="summary-row" style="margin-top: 4px;">
-          <span>Bayar (Cash)</span>
-          <span>Rp${t.cashReceived.toLocaleString('id-ID')}</span>
-        </div>
-        <div class="summary-row">
-          <span>Kembalian</span>
-          <span>Rp${t.change.toLocaleString('id-ID')}</span>
-        </div>
-        `
-            : ''
-        }
-      </div>
-      
-      <div class="footer text-center">
-        <div>Terima Kasih Atas Kunjungan Anda</div>
-        <div>Barang yang sudah dibeli tidak dapat ditukar/dikembalikan</div>
       </div>
     </body>
     </html>
@@ -601,6 +678,8 @@ async function printHtml(
 ): Promise<any> {
   return new Promise((resolve, reject) => {
     const tempWindow = new BrowserWindow({
+      width: 250,
+      height: 600,
       show: false,
       webPreferences: {
         nodeIntegration: false,
@@ -629,7 +708,8 @@ async function printHtml(
           tempWindow.webContents.print(
             {
               silent: false,
-              printBackground: true
+              printBackground: true,
+              margins: { marginType: 'none' }
             },
             (success, errorType) => {
               tempWindow.destroy()

@@ -63,6 +63,8 @@ declare global {
         transaction: any
       ) => Promise<{ success: boolean; filePath?: string; message?: string }>
       printToPrinter: (transaction: any) => Promise<{ success: boolean; message?: string }>
+      backupDatabase: () => Promise<{ success: boolean; filePath?: string; message?: string }>
+      restoreDatabase: () => Promise<{ success: boolean; message?: string }>
     }
   }
 }

@@ -92,6 +92,13 @@ function App(): React.JSX.Element {
   // Toast notification
   const [toast, setToast] = useState<string | null>(null)
 
+  // Confirmation Modal state
+  const [confirmDialog, setConfirmDialog] = useState<{
+    title: string
+    message: string
+    onConfirm: () => void
+  } | null>(null)
+
   // Fetch products dari database
   const fetchProducts = async (): Promise<void> => {
     try {
@@ -210,22 +217,24 @@ function App(): React.JSX.Element {
 
   // Hapus produk
   const handleDeleteProduct = async (productId: number): Promise<void> => {
-    if (confirm('Apakah Anda yakin ingin menghapus produk ini?')) {
-      try {
-        await window.api.deleteProduct(productId)
-        showToast('Produk berhasil dihapus!')
-        // Hapus dari keranjang jika produk tersebut sedang dipilih
-        setCart((prev) => prev.filter((item) => item.product.id !== productId))
-        // Batalkan edit jika produk yang dihapus sedang diedit
-        if (editingProduct?.id === productId) {
-          cancelEdit()
+    setConfirmDialog({
+      title: 'Hapus Produk',
+      message: 'Apakah Anda yakin ingin menghapus produk ini?',
+      onConfirm: async () => {
+        try {
+          await window.api.deleteProduct(productId)
+          showToast('Produk berhasil dihapus!')
+          setCart((prev) => prev.filter((item) => item.product.id !== productId))
+          if (editingProduct?.id === productId) {
+            cancelEdit()
+          }
+          fetchProducts()
+        } catch (err) {
+          console.error(err)
+          showToast('Gagal menghapus produk')
         }
-        fetchProducts()
-      } catch (err) {
-        console.error(err)
-        showToast('Gagal menghapus produk')
       }
-    }
+    })
   }
 
   // CRUD Tipe Produk (ProductType)
@@ -253,31 +262,43 @@ function App(): React.JSX.Element {
   }
 
   const handleDeleteProductType = async (id: number): Promise<void> => {
-    if (confirm('Apakah Anda yakin ingin menghapus tipe barang ini?')) {
-      try {
-        await window.api.deleteProductType(id)
-        showToast('Tipe barang berhasil dihapus!')
-        fetchProductTypes()
-      } catch (err) {
-        console.error(err)
-        showToast('Gagal menghapus tipe barang')
+    setConfirmDialog({
+      title: 'Hapus Tipe Barang',
+      message: 'Apakah Anda yakin ingin menghapus tipe barang ini?',
+      onConfirm: async () => {
+        try {
+          await window.api.deleteProductType(id)
+          showToast('Tipe barang berhasil dihapus!')
+          fetchProductTypes()
+        } catch (err) {
+          console.error(err)
+          showToast('Gagal menghapus tipe barang')
+        }
       }
-    }
+    })
   }
 
   // Hapus Transaksi dari Riwayat
   const handleDeleteTransaction = async (id: number): Promise<void> => {
-    if (confirm('Apakah Anda yakin ingin menghapus transaksi ini dari riwayat?')) {
-      try {
-        await window.api.deleteTransaction(id)
-        showToast('Transaksi berhasil dihapus!')
-        fetchProducts() // Muat ulang produk untuk memperbarui stok barang di UI
-        fetchTransactions()
-      } catch (err) {
-        console.error(err)
-        showToast('Gagal menghapus transaksi')
+    setConfirmDialog({
+      title: 'Hapus Transaksi',
+      message: 'Apakah Anda yakin ingin menghapus transaksi ini dari riwayat?',
+      onConfirm: async () => {
+        try {
+          const res = await window.api.deleteTransaction(id)
+          if (res && res.success !== false) {
+            showToast('Transaksi berhasil dihapus!')
+            fetchProducts() // Muat ulang produk untuk memperbarui stok barang di UI
+            fetchTransactions()
+          } else {
+            showToast(`Gagal: ${res?.message || 'Gagal menghapus transaksi'}`)
+          }
+        } catch (err) {
+          console.error(err)
+          showToast('Gagal menghapus transaksi')
+        }
       }
-    }
+    })
   }
 
   // Add to cart
@@ -367,6 +388,46 @@ function App(): React.JSX.Element {
     p.name.toLowerCase().includes(searchQuery.toLowerCase())
   )
 
+  // Backup Database Handler
+  const handleBackupDatabase = async (): Promise<void> => {
+    try {
+      const res = await window.api.backupDatabase()
+      if (res.success) {
+        showToast('Backup database berhasil disimpan!')
+      } else if (res.message !== 'Backup dibatalkan') {
+        showToast(`Gagal backup: ${res.message}`)
+      }
+    } catch (err: any) {
+      console.error(err)
+      showToast('Gagal melakukan backup database')
+    }
+  }
+
+  // Restore Database Handler
+  const handleRestoreDatabase = async (): Promise<void> => {
+    setConfirmDialog({
+      title: 'Pulihkan Database (Restore)',
+      message:
+        'Apakah Anda yakin ingin memulihkan database dari file cadangan? Data produk dan riwayat transaksi saat ini akan digantikan oleh data dari file backup tersebut.',
+      onConfirm: async () => {
+        try {
+          const res = await window.api.restoreDatabase()
+          if (res.success) {
+            showToast('Database berhasil dipulihkan!')
+            fetchProducts()
+            fetchProductTypes()
+            fetchTransactions()
+          } else if (res.message !== 'Restore dibatalkan') {
+            showToast(`Gagal restore: ${res.message}`)
+          }
+        } catch (err: any) {
+          console.error(err)
+          showToast('Gagal memulihkan database')
+        }
+      }
+    })
+  }
+
   // Auth guard: tampilkan login/register jika belum login
   if (!currentUser) {
     if (authPage === 'register') {
@@ -393,7 +454,12 @@ function App(): React.JSX.Element {
       )}
 
       {/* POS Header Component */}
-      <Header currentUser={currentUser} onLogout={handleLogout} />
+      <Header
+        currentUser={currentUser}
+        onLogout={handleLogout}
+        onBackupDatabase={handleBackupDatabase}
+        onRestoreDatabase={handleRestoreDatabase}
+      />
 
       {/* Main Grid */}
       <main className={`pos-grid ${activeTab !== 'catalogue' ? 'full-width' : ''}`}>
@@ -507,6 +573,82 @@ function App(): React.JSX.Element {
           />
         )}
       </main>
+
+      {/* Modal Konfirmasi Pengganti Window.confirm Native */}
+      {confirmDialog && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            backdropFilter: 'blur(3px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 99999
+          }}
+        >
+          <div
+            style={{
+              background: '#ffffff',
+              borderRadius: '12px',
+              padding: '24px',
+              maxWidth: '420px',
+              width: '90%',
+              boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+              border: '1px solid #e5e7eb'
+            }}
+          >
+            <h3 style={{ margin: '0 0 10px 0', fontSize: '18px', fontWeight: 700, color: '#1f2937' }}>
+              {confirmDialog.title}
+            </h3>
+            <p style={{ margin: '0 0 20px 0', fontSize: '14px', color: '#4b5563', lineHeight: 1.5 }}>
+              {confirmDialog.message}
+            </p>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+              <button
+                type="button"
+                onClick={() => setConfirmDialog(null)}
+                style={{
+                  padding: '8px 16px',
+                  borderRadius: '6px',
+                  border: '1px solid #d1d5db',
+                  background: '#ffffff',
+                  color: '#374151',
+                  cursor: 'pointer',
+                  fontWeight: 600,
+                  fontSize: '13px'
+                }}
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  const action = confirmDialog.onConfirm
+                  setConfirmDialog(null)
+                  action()
+                }}
+                style={{
+                  padding: '8px 16px',
+                  borderRadius: '6px',
+                  border: 'none',
+                  background: '#ef4444',
+                  color: '#ffffff',
+                  cursor: 'pointer',
+                  fontWeight: 600,
+                  fontSize: '13px'
+                }}
+              >
+                Ya, Hapus
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

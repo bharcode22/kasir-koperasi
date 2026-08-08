@@ -50,7 +50,9 @@ const api = {
   exportToExcel: (transactions: any[]) => ipcRenderer.invoke('export-to-excel', transactions),
   exportSalesReport: (reportData: any[]) => ipcRenderer.invoke('export-sales-report', reportData),
   printToPDF: (transaction: any) => ipcRenderer.invoke('print-to-pdf', transaction),
-  printToPrinter: (transaction: any) => ipcRenderer.invoke('print-to-printer', transaction)
+  printToPrinter: (transaction: any) => ipcRenderer.invoke('print-to-printer', transaction),
+  backupDatabase: () => ipcRenderer.invoke('backup-database'),
+  restoreDatabase: () => ipcRenderer.invoke('restore-database')
 }
 
 // Use `contextBridge` APIs to expose Electron APIs to

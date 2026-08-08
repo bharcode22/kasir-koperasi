@@ -6,17 +6,20 @@ import { PrismaBetterSqlite3 } from '@prisma/adapter-better-sqlite3'
 
 let prisma: PrismaClient
 
+export function getDbPath(): string {
+  const isDev = !app.isPackaged
+  if (isDev) {
+    return join(process.cwd(), 'prisma/dev.db')
+  } else {
+    return join(app.getPath('userData'), 'kasir.db')
+  }
+}
+
 export function initializeDatabase(): PrismaClient {
   const isDev = !app.isPackaged
-  let dbPath: string
+  let dbPath = getDbPath()
 
-  if (isDev) {
-    dbPath = join(process.cwd(), 'prisma/dev.db')
-  } else {
-    // Simpan database di folder data aplikasi pengguna (aman dan standar Windows/macOS)
-    const userDataPath = app.getPath('userData')
-    dbPath = join(userDataPath, 'kasir.db')
-
+  if (!isDev) {
     // Salin template dev.db dari package resources jika kasir.db belum ada atau kosong/corrupt (< 20KB)
     let shouldCopy = false
     if (!existsSync(dbPath)) {
@@ -153,4 +156,19 @@ export function getPrisma(): PrismaClient {
     return initializeDatabase()
   }
   return prisma
+}
+
+export async function restoreDatabase(backupFilePath: string): Promise<void> {
+  if (prisma) {
+    try {
+      await prisma.$disconnect()
+    } catch (err) {
+      console.warn('Gagal memutus koneksi prisma lama:', err)
+    }
+  }
+
+  const activeDbPath = getDbPath()
+  copyFileSync(backupFilePath, activeDbPath)
+
+  initializeDatabase()
 }
