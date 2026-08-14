@@ -157,6 +157,22 @@ function App(): React.JSX.Element {
     }, 3000)
   }
 
+const parseIndonesianNumber = (val: string | number): number => {
+  if (typeof val === 'number') return val
+  if (!val) return 0
+  let cleaned = val.toString().trim()
+  if (cleaned.includes('.')) {
+    if (!cleaned.includes(',')) {
+      cleaned = cleaned.replace(/\./g, '')
+    } else {
+      cleaned = cleaned.replace(/\./g, '').replace(',', '.')
+    }
+  } else if (cleaned.includes(',')) {
+    cleaned = cleaned.replace(',', '.')
+  }
+  return parseFloat(cleaned) || 0
+}
+
   // Handle submit form produk (Create atau Update)
   const handleSubmitProduct = async (e: React.FormEvent): Promise<void> => {
     e.preventDefault()
@@ -165,15 +181,19 @@ function App(): React.JSX.Element {
       return
     }
 
+    const parsedPrice = parseIndonesianNumber(formData.price)
+    const parsedPurchasePrice = Math.round(parseIndonesianNumber(formData.purchasePrice || '0'))
+    const parsedStock = parseInt(formData.stock || '0', 10)
+
     try {
       if (editingProduct) {
         // Update Produk
         await window.api.updateProduct({
           id: editingProduct.id,
           name: formData.name,
-          price: parseFloat(formData.price),
-          purchasePrice: parseFloat(formData.purchasePrice || '0'),
-          stock: parseInt(formData.stock || '0', 10),
+          price: parsedPrice,
+          purchasePrice: parsedPurchasePrice,
+          stock: parsedStock,
           type: formData.type
         })
         showToast('Produk berhasil diperbarui!')
@@ -182,9 +202,9 @@ function App(): React.JSX.Element {
         // Create Produk Baru
         await window.api.createProduct({
           name: formData.name,
-          price: parseFloat(formData.price),
-          purchasePrice: parseFloat(formData.purchasePrice || '0'),
-          stock: parseInt(formData.stock || '0', 10),
+          price: parsedPrice,
+          purchasePrice: parsedPurchasePrice,
+          stock: parsedStock,
           type: formData.type
         })
         showToast('Produk berhasil ditambahkan!')
@@ -203,7 +223,7 @@ function App(): React.JSX.Element {
     setFormData({
       name: product.name,
       price: product.price.toString(),
-      purchasePrice: (product.purchasePrice ?? 0).toString(),
+      purchasePrice: Math.round(product.purchasePrice ?? 0).toString(),
       stock: product.stock.toString(),
       type: product.type
     })

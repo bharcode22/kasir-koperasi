@@ -27,6 +27,22 @@ interface ProductFormProps {
   productTypes: { id: number; name: string }[]
 }
 
+const parseIndonesianNumber = (val: string | number): number => {
+  if (typeof val === 'number') return val
+  if (!val) return 0
+  let cleaned = val.toString().trim()
+  if (cleaned.includes('.')) {
+    if (!cleaned.includes(',')) {
+      cleaned = cleaned.replace(/\./g, '')
+    } else {
+      cleaned = cleaned.replace(/\./g, '').replace(',', '.')
+    }
+  } else if (cleaned.includes(',')) {
+    cleaned = cleaned.replace(',', '.')
+  }
+  return parseFloat(cleaned) || 0
+}
+
 export default function ProductForm({
   formData,
   onFormChange,
@@ -47,18 +63,18 @@ export default function ProductForm({
   }, [editingProduct])
 
   const originalStock = editingProduct ? editingProduct.stock : 0
-  const originalPurchasePrice = editingProduct ? (editingProduct.purchasePrice ?? 0) : 0
+  const originalPurchasePrice = editingProduct ? Math.round(editingProduct.purchasePrice ?? 0) : 0
 
   const handleRestockQtyChange = (qtyStr: string): void => {
     setRestockQty(qtyStr)
     const qty = parseInt(qtyStr, 10) || 0
-    const newPP = parseFloat(newPurchasePriceInput) || originalPurchasePrice
+    const newPP = parseIndonesianNumber(newPurchasePriceInput) || originalPurchasePrice
 
     const finalStock = originalStock + qty
     let finalPurchasePrice = originalPurchasePrice
 
     if (finalStock > 0) {
-      finalPurchasePrice = ((originalStock * originalPurchasePrice) + (qty * newPP)) / finalStock
+      finalPurchasePrice = Math.round(((originalStock * originalPurchasePrice) + (qty * newPP)) / finalStock)
     }
 
     onFormChange({
@@ -71,13 +87,13 @@ export default function ProductForm({
   const handleNewPurchasePriceChange = (ppStr: string): void => {
     setNewPurchasePriceInput(ppStr)
     const qty = parseInt(restockQty, 10) || 0
-    const newPP = parseFloat(ppStr) || 0
+    const newPP = parseIndonesianNumber(ppStr)
 
     const finalStock = originalStock + qty
     let finalPurchasePrice = originalPurchasePrice
 
     if (finalStock > 0) {
-      finalPurchasePrice = ((originalStock * originalPurchasePrice) + (qty * newPP)) / finalStock
+      finalPurchasePrice = Math.round(((originalStock * originalPurchasePrice) + (qty * newPP)) / finalStock)
     }
 
     onFormChange({
@@ -89,19 +105,20 @@ export default function ProductForm({
 
   const handleToggleRestock = (checked: boolean): void => {
     setIsRestockMode(checked)
+    const roundedOriginalPP = Math.round(originalPurchasePrice)
     if (checked) {
       setRestockQty('')
-      setNewPurchasePriceInput(originalPurchasePrice.toString())
+      setNewPurchasePriceInput(roundedOriginalPP.toString())
       onFormChange({
         ...formData,
         stock: originalStock.toString(),
-        purchasePrice: originalPurchasePrice.toString()
+        purchasePrice: roundedOriginalPP.toString()
       })
     } else {
       onFormChange({
         ...formData,
         stock: originalStock.toString(),
-        purchasePrice: originalPurchasePrice.toString()
+        purchasePrice: roundedOriginalPP.toString()
       })
     }
   }
@@ -220,10 +237,10 @@ export default function ProductForm({
                 </label>
                 <input
                   id="new-purchase-price"
-                  type="number"
-                  min="0"
+                  type="text"
+                  inputMode="numeric"
                   className="form-control"
-                  placeholder="Contoh: 9500"
+                  placeholder="Contoh: 9500 atau 22.000"
                   value={newPurchasePriceInput}
                   onChange={(e): void => handleNewPurchasePriceChange(e.target.value)}
                   required
@@ -253,7 +270,7 @@ export default function ProductForm({
                 <span style={{ color: '#9ca3af' }}>Harga Beli Rata-Rata (WAC):</span>
                 <span style={{ fontWeight: 700, color: '#fb923c' }}>
                   Rp
-                  {Math.round(parseFloat(formData.purchasePrice || '0')).toLocaleString('id-ID')}
+                  {Math.round(parseIndonesianNumber(formData.purchasePrice || '0')).toLocaleString('id-ID')}
                 </span>
               </div>
             </div>
@@ -262,10 +279,10 @@ export default function ProductForm({
               <label htmlFor="prod-price-restock">Harga Jual Baru</label>
               <input
                 id="prod-price-restock"
-                type="number"
-                min="0"
+                type="text"
+                inputMode="numeric"
                 className="form-control"
-                placeholder="Contoh: 15000"
+                placeholder="Contoh: 15000 atau 22.000"
                 value={formData.price}
                 onChange={(e): void => onFormChange({ ...formData, price: e.target.value })}
                 required
@@ -282,10 +299,10 @@ export default function ProductForm({
                 <label htmlFor="prod-purchase-price">Harga Beli</label>
                 <input
                   id="prod-purchase-price"
-                  type="number"
-                  min="0"
+                  type="text"
+                  inputMode="numeric"
                   className="form-control"
-                  placeholder="Contoh: 12000"
+                  placeholder="Contoh: 12000 atau 22.000"
                   value={formData.purchasePrice}
                   onChange={(e): void => onFormChange({ ...formData, purchasePrice: e.target.value })}
                   required
@@ -295,10 +312,10 @@ export default function ProductForm({
                 <label htmlFor="prod-price">Harga Jual</label>
                 <input
                   id="prod-price"
-                  type="number"
-                  min="0"
+                  type="text"
+                  inputMode="numeric"
                   className="form-control"
-                  placeholder="Contoh: 15000"
+                  placeholder="Contoh: 15000 atau 22.000"
                   value={formData.price}
                   onChange={(e): void => onFormChange({ ...formData, price: e.target.value })}
                   required
