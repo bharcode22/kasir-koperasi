@@ -99,6 +99,10 @@ function App(): React.JSX.Element {
     onConfirm: () => void
   } | null>(null)
 
+  // State untuk koreksi stok
+  const [adjustingProduct, setAdjustingProduct] = useState<Product | null>(null)
+  const [adjustingStockVal, setAdjustingStockVal] = useState<string>('')
+
   // Fetch products dari database
   const fetchProducts = async (): Promise<void> => {
     try {
@@ -233,6 +237,40 @@ const parseIndonesianNumber = (val: string | number): number => {
   const cancelEdit = (): void => {
     setEditingProduct(null)
     setFormData({ name: '', price: '', purchasePrice: '', stock: '', type: '' })
+  }
+
+  // Mulai koreksi stok produk
+  const startAdjustStock = (product: Product): void => {
+    setAdjustingProduct(product)
+    setAdjustingStockVal(product.stock.toString())
+  }
+
+  // Submit koreksi stok produk
+  const handleAdjustStockSubmit = async (e: React.FormEvent): Promise<void> => {
+    e.preventDefault()
+    if (!adjustingProduct) return
+    const parsedStock = parseInt(adjustingStockVal, 10)
+    if (isNaN(parsedStock) || parsedStock < 0) {
+      showToast('Stok harus berupa angka positif!')
+      return
+    }
+
+    try {
+      await window.api.updateProduct({
+        id: adjustingProduct.id,
+        name: adjustingProduct.name,
+        price: adjustingProduct.price,
+        purchasePrice: adjustingProduct.purchasePrice,
+        stock: parsedStock,
+        type: adjustingProduct.type
+      })
+      showToast('Stok berhasil diperbarui!')
+      setAdjustingProduct(null)
+      fetchProducts()
+    } catch (err) {
+      console.error(err)
+      showToast('Gagal mengubah stok')
+    }
   }
 
   // Hapus produk
@@ -553,6 +591,7 @@ const parseIndonesianNumber = (val: string | number): number => {
                 products={products}
                 onEditClick={startEdit}
                 onDeleteClick={handleDeleteProduct}
+                onAdjustStockClick={startAdjustStock}
               />
 
               {/* Sisi Kanan: Form Tambah/Edit Produk */}
@@ -666,6 +705,103 @@ const parseIndonesianNumber = (val: string | number): number => {
                 Ya, Hapus
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Koreksi Stok Barang */}
+      {adjustingProduct && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            backdropFilter: 'blur(3px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 99999
+          }}
+        >
+          <div
+            style={{
+              background: '#2d3748',
+              color: '#ffffff',
+              borderRadius: '12px',
+              padding: '24px',
+              maxWidth: '420px',
+              width: '90%',
+              boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 10px 10px -5px rgba(0, 0, 0, 0.2)',
+              border: '1px solid rgba(255, 255, 255, 0.1)'
+            }}
+          >
+            <h3 style={{ margin: '0 0 10px 0', fontSize: '18px', fontWeight: 700, color: '#ffffff' }}>
+              Koreksi Stok Barang
+            </h3>
+            <p style={{ margin: '0 0 16px 0', fontSize: '14px', color: '#cbd5e0', lineHeight: 1.5 }}>
+              Nama Barang: <strong style={{ color: '#fff' }}>{adjustingProduct.name}</strong>
+            </p>
+            <form onSubmit={handleAdjustStockSubmit}>
+              <div style={{ marginBottom: '20px' }}>
+                <label htmlFor="adjust-stock-input" style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: '#a0aec0', marginBottom: '8px' }}>
+                  Jumlah Stok yang Benar
+                </label>
+                <input
+                  id="adjust-stock-input"
+                  type="number"
+                  min="0"
+                  className="form-control"
+                  style={{
+                    width: '100%',
+                    background: '#1a202c',
+                    color: '#fff',
+                    border: '1px solid rgba(255, 255, 255, 0.15)',
+                    padding: '8px 12px',
+                    borderRadius: '6px'
+                  }}
+                  value={adjustingStockVal}
+                  onChange={(e) => setAdjustingStockVal(e.target.value)}
+                  required
+                  autoFocus
+                />
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+                <button
+                  type="button"
+                  onClick={() => setAdjustingProduct(null)}
+                  style={{
+                    padding: '8px 16px',
+                    borderRadius: '6px',
+                    border: '1px solid rgba(255, 255, 255, 0.15)',
+                    background: 'transparent',
+                    color: '#e2e8f0',
+                    cursor: 'pointer',
+                    fontWeight: 600,
+                    fontSize: '13px'
+                  }}
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  style={{
+                    padding: '8px 16px',
+                    borderRadius: '6px',
+                    border: 'none',
+                    background: '#10b981',
+                    color: '#ffffff',
+                    cursor: 'pointer',
+                    fontWeight: 600,
+                    fontSize: '13px'
+                  }}
+                >
+                  Simpan Koreksi
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

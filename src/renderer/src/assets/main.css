@@ -1056,6 +1056,15 @@ body {
   border-color: rgba(239, 68, 68, 0.4);
 }
 
+.table-actions .action-btn-adjust {
+  color: #34d399;
+}
+
+.table-actions .action-btn-adjust:hover {
+  background: rgba(52, 211, 153, 0.15);
+  border-color: rgba(52, 211, 153, 0.4);
+}
+
 /* Transaction Detail Receipt styling */
 .detail-transaction-panel {
   display: flex;

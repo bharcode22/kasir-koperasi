@@ -146,6 +146,16 @@ async function runManualMigrations(client: PrismaClient): Promise<void> {
         console.error('Gagal migrasi kolom purchasePrice ke TransactionItem:', err.message || err)
       }
     }
+
+    // 6. Update stok untuk Gula BULK 50 Kg dengan ID 27 menjadi 9
+    try {
+      await client.$executeRawUnsafe(
+        `UPDATE "Product" SET "stock" = 9 WHERE "id" = 27 AND "name" = 'Gula BULK 50 Kg';`
+      )
+      console.log('Update stok Gula BULK 50 Kg berhasil.')
+    } catch (err: any) {
+      console.error('Gagal update stok Gula BULK 50 Kg:', err.message || err)
+    }
   } catch (globalErr: any) {
     console.error('Global error migrasi manual:', globalErr.message || globalErr)
   }

@@ -13,12 +13,14 @@ interface ProductTableProps {
   products: Product[]
   onEditClick: (product: Product) => void
   onDeleteClick: (productId: number) => void
+  onAdjustStockClick?: (product: Product) => void
 }
 
 export default function ProductTable({
   products,
   onEditClick,
-  onDeleteClick
+  onDeleteClick,
+  onAdjustStockClick
 }: ProductTableProps): React.JSX.Element {
   const [query, setQuery] = useState('')
   const [activeType, setActiveType] = useState<string>('Semua')
@@ -253,6 +255,15 @@ export default function ProductTable({
                   </td>
                   <td style={{ textAlign: 'center' }}>
                     <div className="table-actions">
+                      {onAdjustStockClick && (
+                        <button
+                          className="action-btn-adjust"
+                          onClick={(): void => onAdjustStockClick(p)}
+                          title="Koreksi Stok"
+                        >
+                          Koreksi Stok
+                        </button>
+                      )}
                       <button
                         className="action-btn-edit"
                         onClick={(): void => onEditClick(p)}
